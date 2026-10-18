@@ -1,0 +1,11 @@
+{
+  "ages": [
+    {"id": "villages", "cost": {}, "researchSeconds": 0, "requiresBuildings": []},
+    {"id": "kingdoms", "cost": {"food": 500, "wood": 200}, "researchSeconds": 40,
+     "requiresBuildings": ["town_center", "hut", "granary"]},
+    {"id": "empires", "cost": {"food": 800, "iron": 400}, "researchSeconds": 50,
+     "requiresBuildings": ["town_center", "barracks", "forge"]},
+    {"id": "gold", "cost": {"food": 1000, "gold": 800}, "researchSeconds": 60,
+     "requiresBuildings": ["town_center", "market"]}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "resources": [
+    {"id": "tree",       "res": "wood",  "amount": 100},
+    {"id": "berries",    "res": "food",  "amount": 200},
+    {"id": "game",       "res": "food",  "amount": 120},
+    {"id": "quarry",     "res": "stone", "amount": 400},
+    {"id": "iron_mine",  "res": "iron",  "amount": 400},
+    {"id": "gold_mine",  "res": "gold",  "amount": 600}
+  ]
+}

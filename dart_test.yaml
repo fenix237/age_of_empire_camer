@@ -1,0 +1,4 @@
+tags:
+  # Images de référence : générées et comparées sous Windows (rendu identique
+  # au pixel près d'une machine à l'autre de même plateforme uniquement).
+  golden:

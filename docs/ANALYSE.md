@@ -512,6 +512,42 @@ Techniques : grille spatiale de hachage pour requêtes de proximité, tableaux t
 - Gestion des encoches, barres système immersives, `onTrimMemory`, services : aucun.
 - Signature de la clé de publication à conserver dans un coffre (perte = impossibilité de mettre à jour).
 
+### 15.1 Responsive : une seule base de code, toutes les tailles d'écran
+
+**Principe** : le monde de jeu est indépendant de la taille de l'écran ; seuls le viewport et le HUD s'adaptent.
+
+- **Viewport de jeu** : la caméra remplit 100 % de la fenêtre. Le zoom est borné (min/max) et le zoom par défaut est calculé selon la hauteur de l'écran pour qu'un nombre constant de cases soit visible. Aucune bande noire, aucun étirement.
+- **Classes de taille** (largeur logique en dp) : *compact* < 700 (téléphone), *moyen* 700–1100 (tablette, petite fenêtre), *large* > 1100 (PC). Le HUD change de disposition par classe : téléphone = boutons larges, mini-carte réduite repliable, panneau d'actions compact ; PC = HUD complet, infobulles, raccourcis affichés.
+- **Ratios** : de 16:9 à 21:9 (téléphones allongés) et 4:3 (tablettes). Les éléments du HUD sont ancrés aux bords/coins, jamais en coordonnées fixes.
+- **Échelle d'interface** : 80–150 % réglable, appliquée à tout le HUD ; tailles tactiles minimales 48 dp sur Android.
+- **Zones sûres** : encoches, coins arrondis, barres système (Android) et barre de titre (Windows) respectés via `SafeArea`/`MediaQuery.padding`.
+- **Redimensionnement en direct** (Windows) : la caméra conserve le point central, le HUD se recompose sans scintillement, le cache de terrain est invalidé seulement si nécessaire. Taille minimale 1024×576.
+- **DPI / densité** : rendu net en 100–300 % de mise à l'échelle Windows et sur tous les `devicePixelRatio` Android ; sprites choisis par niveau de qualité, pas par pixel brut.
+- **Android** : paysage verrouillé (`sensorLandscape`, donc les deux sens de paysage), mode immersif plein écran, rotation entre les deux paysages sans perte d'état, support des tablettes et du multi-fenêtre désactivé (redimensionnement non supporté, déclaré dans le manifeste) pour éviter des états imprévus.
+- **Tests** : golden tests du HUD sur 6 tailles de référence (360×800, 412×915, 800×1280, 1280×720, 1920×1080, 2560×1080) et en échelle 80 / 100 / 150 % ; aucun débordement (overflow) toléré.
+
+### 15.2 Plein écran sur Windows
+
+- Trois modes : **Fenêtré** (redimensionnable, mémorisé), **Plein écran sans bordure** (par défaut en plein écran, bascule instantanée, compatible multi-écrans/alt-tab), puis éventuellement exclusif plus tard.
+- Bascule par **F11** et **Alt+Entrée**, et par une option dans les paramètres. Sur Échap, le menu pause s'ouvre (Échap ne sort jamais du plein écran, pour éviter les sorties accidentelles).
+- Mémorisation de la position, de la taille, du moniteur et du mode dans le profil ; au lancement suivant, restauration sur le même moniteur. Si ce moniteur n'existe plus, repli sur l'écran principal et recentrage ; si la taille enregistrée dépasse l'écran, elle est réduite.
+- Changement de résolution, de DPI ou de moniteur en cours de partie : le viewport se recalcule sans redémarrage ni perte d'état.
+- Comportements : perte de focus ⇒ pause automatique (réglable) ; réduction/restauration sans crash ; sortie de veille ⇒ reprise en pause avec écran de reprise.
+- Implémentation : `window_manager` (taille mini, plein écran, centrage, événements de fenêtre) avec une couche d'abstraction `WindowService` testable par un faux service, Android fournissant une implémentation vide.
+
+### 15.3 Fermeture de l'application sur Windows
+
+La fermeture ne doit **jamais** perdre de données ni laisser un processus fantôme.
+
+- Interception de **toutes** les fermetures : bouton ✕, Alt+F4, bouton « Quitter » du menu, fermeture de session Windows ou arrêt du PC, tâche tuée proprement.
+- Flux : si une partie est en cours avec des changements non sauvegardés ⇒ boîte de dialogue « Sauvegarder et quitter / Quitter sans sauvegarder / Annuler » (la partie est mise en pause pendant la question). En menu, ou sans changement, fermeture immédiate.
+- **Sauvegarde automatique avant fermeture** (écriture atomique, voir §16) ; si l'écriture échoue (disque plein), l'utilisateur est averti et peut annuler la fermeture.
+- En cas d'arrêt de session Windows (délai court imposé par le système) : autosauvegarde rapide sans dialogue.
+- Fermeture propre des ressources : arrêt de la boucle de jeu, arrêt de l'audio, fermeture du journal, libération des isolates et des fichiers ; garantie qu'**aucun processus ne reste en tâche de fond** (test automatisé qui vérifie la disparition du processus après fermeture).
+- Fermeture brutale (kill, coupure de courant) : la dernière autosauvegarde (toutes les 2 min) et le journal de commandes permettent la reprise ; au lancement suivant, proposition de « Reprendre la partie interrompue ».
+- Instance unique : un second lancement ramène la fenêtre existante au premier plan au lieu d'ouvrir deux jeux qui écriraient dans les mêmes sauvegardes (verrou de fichier dans le dossier de données).
+- Équivalent **Android** : bouton Retour ⇒ menu pause (pas de sortie directe) ; deux appuis rapprochés sur Retour depuis le menu principal pour quitter ; autosauvegarde à chaque passage en arrière-plan.
+
 ### Questions de publication (à trancher avant la phase 9)
 - Distribution : Microsoft Store / Play Store / itch.io / directe ? Cela détermine l'emballage, les politiques de contenu et la classification d'âge.
 

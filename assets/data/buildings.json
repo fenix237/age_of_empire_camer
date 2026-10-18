@@ -1,0 +1,49 @@
+{
+  "buildings": [
+    {
+      "id": "town_center", "age": 0, "size": [4, 4], "cost": {"wood": 275, "stone": 100},
+      "buildSeconds": 120, "hp": 1500, "armor": 3, "vision": 10, "popBonus": 10,
+      "dropOff": ["food", "wood", "stone", "iron", "gold"],
+      "trains": ["villager"], "researches": [], "garrison": 15,
+      "townCenter": true, "startsComplete": true
+    },
+    {
+      "id": "hut", "age": 0, "size": [2, 2], "cost": {"wood": 25},
+      "buildSeconds": 15, "hp": 200, "armor": 0, "vision": 4, "popBonus": 5
+    },
+    {
+      "id": "granary", "age": 0, "size": [2, 2], "cost": {"wood": 100},
+      "buildSeconds": 20, "hp": 350, "armor": 1, "vision": 5, "dropOff": ["food"]
+    },
+    {
+      "id": "lumber_camp", "age": 0, "size": [2, 2], "cost": {"wood": 100},
+      "buildSeconds": 20, "hp": 350, "armor": 1, "vision": 5, "dropOff": ["wood"]
+    },
+    {
+      "id": "mining_camp", "age": 0, "size": [2, 2], "cost": {"wood": 100},
+      "buildSeconds": 20, "hp": 350, "armor": 1, "vision": 5,
+      "dropOff": ["stone", "iron", "gold"]
+    },
+    {
+      "id": "field", "age": 0, "size": [3, 3], "cost": {"wood": 60},
+      "buildSeconds": 15, "hp": 100, "armor": 0, "vision": 3, "fieldFood": 175
+    },
+    {
+      "id": "barracks", "age": 0, "size": [3, 3], "cost": {"wood": 175},
+      "buildSeconds": 50, "hp": 800, "armor": 2, "vision": 6,
+      "trains": ["spearman", "archer", "iron_warrior"], "garrison": 10
+    },
+    {
+      "id": "forge", "age": 0, "size": [3, 3], "cost": {"wood": 150, "stone": 50},
+      "buildSeconds": 40, "hp": 700, "armor": 2, "vision": 6,
+      "researches": [
+        "carry_1", "gather_food_1", "gather_wood_1",
+        "gather_stone_1", "gather_iron_1", "gather_gold_1"
+      ]
+    },
+    {
+      "id": "market", "age": 0, "size": [3, 3], "cost": {"wood": 175},
+      "buildSeconds": 40, "hp": 600, "armor": 1, "vision": 6, "market": true
+    }
+  ]
+}

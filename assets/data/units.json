@@ -1,0 +1,34 @@
+{
+  "units": [
+    {
+      "id": "villager", "age": 0, "cost": {"food": 50}, "trainSeconds": 15,
+      "hp": 25, "attack": 3, "armor": 0, "range": 0, "attackCooldownTicks": 15,
+      "speed": 1000, "vision": 6, "pop": 1, "villager": true, "carryCapacity": 10,
+      "gatherRates": {"food": 650, "wood": 750, "stone": 600, "iron": 550, "gold": 500}
+    },
+    {
+      "id": "spearman", "age": 0, "cost": {"food": 50, "wood": 25}, "trainSeconds": 20,
+      "hp": 45, "attack": 4, "armor": 0, "range": 0, "attackCooldownTicks": 15,
+      "speed": 950, "vision": 7, "pop": 1, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}
+    },
+    {
+      "id": "archer", "age": 1, "cost": {"wood": 40, "gold": 30}, "trainSeconds": 20,
+      "hp": 30, "attack": 5, "armor": 0, "range": 5, "attackCooldownTicks": 20,
+      "speed": 1000, "vision": 9, "pop": 1, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}
+    },
+    {
+      "id": "iron_warrior", "age": 1, "cost": {"food": 60, "iron": 40}, "trainSeconds": 25,
+      "hp": 70, "attack": 7, "armor": 1, "range": 0, "attackCooldownTicks": 15,
+      "speed": 950, "vision": 7, "pop": 1, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}
+    },
+    {
+      "id": "horseman", "age": 2, "cost": {"food": 80, "iron": 40}, "trainSeconds": 30,
+      "hp": 80, "attack": 6, "armor": 1, "range": 0, "attackCooldownTicks": 15,
+      "speed": 1700, "vision": 8, "pop": 1, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}
+    }
+  ]
+}

@@ -50,7 +50,9 @@ Tâches
 - [ ] Test d'architecture : `lib/sim` n'importe pas Flutter/Flame (script `tool/check_arch.dart`).
 - [ ] CI GitHub Actions : analyze, format, test, build Windows, build Android.
 - [ ] Gestion d'erreurs globale + journal local fichier.
-- [ ] Fenêtre Windows (taille mini, plein écran), orientation paysage Android, aucune permission Internet dans le manifeste.
+- [ ] Fenêtre Windows (taille mini 1024×576, plein écran F11 / Alt+Entrée sans bordure, mémorisation position/moniteur, repli si moniteur absent) via `WindowService` abstrait + `window_manager` ; orientation paysage Android (`sensorLandscape`, immersif), aucune permission Internet dans le manifeste.
+- [ ] Fermeture Windows : interception ✕ / Alt+F4 / Quitter / arrêt de session, dialogue « Sauvegarder et quitter », fermeture propre sans processus fantôme, instance unique (verrou de fichier) ; bouton Retour Android (menu pause, double appui pour quitter).
+- [ ] Fondations responsive : classes de taille (compact/moyen/large), widgets d'ancrage HUD, `SafeArea`, échelle d'interface 80–150 %.
 - [ ] Squelette de menu principal (Jouer / Options / Quitter) ; écran de chargement.
 - [ ] Documentation : `docs/CONTRIBUTING.md` (conventions), `docs/DECISIONS.md` (journal des décisions d'architecture).
 - [ ] Configuration `.gitignore` (build/, .dart_tool/, clés de signature).
@@ -60,96 +62,101 @@ Tâches
 
 ---
 
-## Phase 1 — Noyau de simulation (3–4 sem.)
+## Phase 1 — Noyau de simulation (3–4 sem.) — ✅ terminée
 
 **Objectif** : un monde qui tourne sans écran, déterministe, testé.
 
 Tâches
-- [ ] `FixedPoint` (entiers 1/256), vecteurs, distances entières, table trigonométrique, racine entière.
-- [ ] `Rng` déterministe (xorshift128+ ou PCG) avec états sérialisables.
-- [ ] `World` : entités (IDs stables), registres, tick fixe 10 Hz, ordre de résolution déterministe.
-- [ ] Chargeur de définitions JSON (`UnitDef`, `BuildingDef`, `ResourceDef`, `AgeDef`) avec **validation de schéma** (erreur claire si donnée invalide).
-- [ ] Carte logique : terrain, hauteurs, grille d'occupation, ressources.
-- [ ] Générateur de cartes procédural déterministe + validation de connexité + garantie de ressources de départ.
-- [ ] File de commandes + validation + journal de commandes (pour replays).
-- [ ] Hash d'état (par seconde) et outil `tool/replay` qui rejoue un journal et compare.
-- [ ] Sérialisation d'état (sauvegarde/chargement) de base, format versionné + CRC.
-- [ ] Framework d'invariants (Analyse §13.2) exécuté après chaque tick en debug.
-- [ ] Tests unitaires + premiers tests de propriétés (commandes aléatoires).
+- [x] `FixedPoint` (entiers 1/256), vecteurs, distances entières, table trigonométrique, racine entière. → `lib/sim/core/fixed_point.dart`, `vec2.dart`
+- [x] `Rng` déterministe (xorshift128+, graine SplitMix64) avec états sérialisables. → `rng.dart`
+- [x] `World` : entités (IDs stables), registres, tick fixe 10 Hz, ordre de résolution déterministe (itération par identifiant croissant). → `lib/sim/world/world.dart`
+- [x] Chargeur de définitions JSON (`UnitDef`, `BuildingDef`, `ResourceDef`, `AgeDef`, `TechDef`, terrain, équilibrage) avec **validation de schéma** : erreur claire (fichier, chemin, raison). → `lib/sim/data/`
+- [x] Carte logique : terrain, hauteurs, grille d'occupation, ressources. → `game_map.dart`
+- [x] Générateur de cartes procédural déterministe + validation de connexité + garantie de ressources de départ (régénération graine+1, puis ponts garantis). → `map_generator.dart`
+- [x] File de commandes + validation + journal de commandes (pour replays). → `lib/sim/commands/`
+- [x] Hash d'état (toutes les secondes de jeu) et outil `tool/replay.dart` qui rejoue un journal et compare. Outil de masse `tool/mass_sim.dart`.
+- [x] Sérialisation d'état (sauvegarde/chargement) de base, format versionné + CRC32, écriture atomique (`SaveStore`). → `lib/sim/save/`, `lib/meta/save_store.dart`
+- [x] Framework d'invariants (Analyse §13.2) exécuté après chaque tick en debug ; chaque détecteur est lui-même testé. → `lib/sim/core/invariants.dart`
+- [x] Tests unitaires + tests de propriétés (commandes aléatoires, `CommandFuzzer`).
 
 **Porte de sortie**
-- Test de déterminisme : 1 000 graines × 10 000 ticks avec commandes aléatoires, mêmes hashes entre deux exécutions et entre Windows et Android (test de hash croisé via un fichier de référence).
-- Génération de 10 000 cartes sans carte invalide.
-- Couverture de `sim/` ≥ 90 %.
+- [x] Test de déterminisme : 1 000 graines × 10 000 ticks avec commandes aléatoires, mêmes hashes entre deux exécutions (`SIM_FULL=1 flutter test test/sim/determinism_test.dart`).
+- [ ] Mêmes hashes **entre Windows et Android** : le fichier de référence `test/fixtures/hash_reference.json` est généré sur Windows et comparé par `flutter test` ; **reste à exécuter sur un appareil Android réel** (aucun appareil disponible pendant le développement).
+- [x] Génération de 10 000 cartes sans carte invalide (`SIM_FULL=1`, test `mapgen_test.dart`).
+- [x] Couverture de `lib/sim` ≥ 90 % (mesurée : 95 %, `dart run tool/coverage.dart lib/sim`).
 
 ---
 
-## Phase 2 — Rendu isométrique & caméra (3 sem.)
+## Phase 2 — Rendu isométrique & caméra (3 sem.) — ✅ terminée (hors mesures sur appareils)
 
 **Objectif** : voir le monde, le parcourir et choisir une case précisément.
 
 Tâches
-- [ ] Projection iso et picking inverse (propriété `screenToTile(tileToScreen(p)) == p`).
-- [ ] Rendu du terrain par chunks mis en cache ; transitions entre terrains (auto-tiling).
-- [ ] Rendu des ressources, bâtiments (placeholders), unités (placeholders animés minimalement).
-- [ ] Tri de profondeur robuste (grands bâtiments) + tests golden.
-- [ ] Caméra : glisser, bords d'écran, WASD/flèches, zoom molette / pincement, bornes de carte, inertie optionnelle.
-- [ ] Mini-carte (terrain + entités + vue), clic pour déplacer la caméra.
-- [ ] Brouillard de guerre (3 états) lié à la vision de la simulation.
-- [ ] Interpolation de rendu entre ticks.
-- [ ] Mode debug : grille, FPS, coordonnées, occupation.
-- [ ] Système d'atlas + chargeur d'assets abstrait (clé → sprite), pour changer les assets sans toucher au code.
-- [ ] Gestion cycle de vie : pause auto en arrière-plan / perte de focus.
-- [ ] Mesure de performance sur appareil bas de gamme.
+- [x] Projection iso et picking inverse (propriété `screenToTile(tileToScreen(p)) == p`, testée sur toutes les cases et sur 5 000 points aléatoires). → `lib/game/iso.dart`
+- [x] Rendu du terrain par blocs de 16×16 mis en cache (`Picture`) ; transitions entre terrains (auto-tiling par priorité). → `terrain_renderer.dart`
+- [x] Rendu des ressources, bâtiments (échafaudage selon l'avancement), unités (placeholders, léger balancement en marche). → `assets.dart`, `entity_renderer.dart`
+- [x] Tri de profondeur robuste (grands bâtiments) : tri topologique par règle isométrique exacte + tests de propriété + test golden. → `depth_sorter.dart`
+- [x] Caméra : glisser (clic molette / un doigt), bords d'écran, WASD/flèches, zoom molette / pincement, bornes de carte, inertie. → `camera.dart`, `input.dart`
+- [x] Mini-carte en losange (terrain, ressources, bâtiments, unités, brouillard, zone vue), clic/glisser pour déplacer la caméra, clic droit = ordre, alertes d'attaque clignotantes. → `lib/ui/hud/minimap.dart`
+- [x] Brouillard de guerre (3 états) lié à la vision de la simulation (`explored` sauvegardé, `visible` recalculé). → `fog_renderer.dart`, `lib/sim/systems/vision.dart`
+- [x] Interpolation de rendu entre ticks (`GameLoop.alpha`).
+- [x] Mode debug (F3) : grille, occupation, chemins, FPS, statistiques.
+- [~] Système d'atlas + chargeur d'assets abstrait (clé → sprite) : le **registre clé → sprite** est en place (`AssetRegistry`, placeholders pour toutes les définitions, détection des clés manquantes) ; le chargement de **vrais atlas** est repoussé en Phase 9 (aucun asset réel avant).
+- [x] Gestion cycle de vie : pause auto en arrière-plan / perte de focus, jamais de reprise automatique (écran « Partie en pause »).
+- [x] Viewport responsive : zoom par défaut selon la hauteur, redimensionnement en direct sans perte d'état, tests de non-débordement du HUD sur 8 tailles × 3 échelles (80/100/150 %). Hôte de rendu : Flame (`GameWidget`).
+- [ ] Mesure de performance sur appareil bas de gamme (nécessite le matériel ; voir `docs/PERF.md`).
 
 **Porte de sortie**
-- Carte 128×128 avec 2 000 entités fixes + 200 mobiles à ≥ 60 FPS sur le PC, ≥ 45 FPS sur Android milieu de gamme, ≥ 30 FPS sur le plus faible appareil.
-- Tests golden de tri de profondeur verts.
+- [ ] Carte 128×128 avec 2 000 entités fixes + 200 mobiles à ≥ 60 FPS sur le PC, ≥ 45 FPS sur Android milieu de gamme, ≥ 30 FPS sur le plus faible appareil : **à mesurer sur appareils**. Proxy automatisé : coût de construction d'une image < 25 ms (`test/game/render_perf_test.dart`).
+- [x] Tests golden de tri de profondeur verts (`test/game/goldens/`).
 
 ---
 
-## Phase 3 — Unités, mouvement, sélection (4 sem.)
+## Phase 3 — Unités, mouvement, sélection (4 sem.) — ✅ terminée
 
 **Objectif** : le cœur « Age of Empires » : sélectionner, cliquer, obéir.
 
 Tâches
-- [ ] Sélection : clic, rectangle, Maj+clic, double-clic, groupes de contrôle, touche « villageois inactifs ».
-- [ ] Interactions tactiles équivalentes (appui, glisser-sélection, mode multi-sélection), tolérance de toucher.
-- [ ] Ordre contextuel (sol → déplacer, ressource → récolter, ennemi → attaquer, bâtiment → garnison/réparer).
-- [ ] Marqueur visuel de destination, lignes de chemin, feedback d'ordre.
-- [ ] Pathfinding : A* + grille d'occupation, replanification sur obstacle, file d'attente par tick.
-- [ ] Flow field pour les groupes, HPA* pour les grandes cartes.
-- [ ] Évitement local (séparation, glissement), gestion d'impasses et téléportation de secours.
-- [ ] Formations simples, vitesse du groupe alignée.
-- [ ] Files d'ordres (waypoints) via Maj+clic droit et bouton « file ».
-- [ ] États d'unité en machine à états testée (transitions autorisées).
-- [ ] Stances (agressif / défensif / passif / suivre).
-- [ ] Tests : stress 500 unités, couloirs étroits, impasses, cibles inaccessibles, bâtiment posé sur le chemin.
+- [x] Sélection : clic, rectangle, Maj+clic, double-clic (même type visible), groupes de contrôle Ctrl+0-9 / 0-9, touche `.` « villageois inactifs ». → `lib/game/selection.dart`, `input.dart`
+- [x] Interactions tactiles équivalentes : appui, glisser-sélection (mode multi-sélection), tolérance de toucher de 28 dp, pincement/déplacement à deux doigts, bouton « file d'ordres ».
+- [x] Ordre contextuel (sol → déplacer, ressource → récolter, ennemi → attaquer, bâtiment → garnison/réparer/construire/cultiver). → `lib/sim/commands/contextual.dart`
+- [x] Marqueur visuel de destination, lignes de chemin des unités sélectionnées, feedback d'ordre.
+- [x] Pathfinding : A* (octile, départage déterministe, sans coupe de coin) + grille d'occupation, replanification sur obstacle, file de requêtes avec budget par tick.
+- [x] Flow field pour les groupes (≥ 8 unités). **HPA (hiérarchique) : non implémenté** — voir `docs/DECISIONS.md` n° 14 (repli prévu par la roadmap : flow fields seuls).
+- [x] Évitement local (séparation plafonnée à ¼ de vitesse, glissement le long des obstacles), gestion d'impasses et téléportation de secours journalisée.
+- [x] Formations simples (arrivée en cercle autour de la cible), vitesse du groupe alignée sur la plus lente.
+- [x] Files d'ordres (waypoints) via Maj+clic droit et bouton « file » (limite 32).
+- [x] États d'unité en machine à états testée (table des transitions autorisées, transition illégale détectée).
+- [x] Stances (agressif / défensif / passif / suivre). Combat minimal (poursuite, frappe, riposte) ; le combat complet reste en Phase 5.
+- [x] Tests : stress 500 unités, couloirs étroits, impasses, cibles inaccessibles, bâtiment posé sur le chemin.
 
 **Porte de sortie**
-- 200 unités envoyées dans un goulot d'étranglement en < 2 ms moyen de pathfinding par frame, aucune unité bloquée plus de 5 s, 1 000 scénarios aléatoires de mouvement sans violation d'invariant.
+- [x] 200 unités envoyées dans un goulot d'étranglement : **0,001 ms** de pathfinding par tick en flow field, **0,10 ms** avec 200 ordres individuels A* (seuil 2 ms) ; aucune unité immobile plus de 1 tick (flow) / 6 ticks (A*) (seuil 5 s = 50 ticks).
+- [x] 1 000 scénarios aléatoires de mouvement sans violation d'invariant (`SIM_FULL=1`).
 
 ---
 
-## Phase 4 — Économie & construction (4 sem.)
+## Phase 4 — Économie & construction (4 sem.) — ✅ terminée
 
 **Objectif** : une économie complète, un village qui grandit.
 
 Tâches
-- [ ] Récolte (nourriture, bois, pierre, fer, or), capacité de portage, dépôt automatique au plus proche.
-- [ ] Gestion de l'épuisement d'une ressource et recherche automatique de la suivante.
-- [ ] Construction : aperçu fantôme, validation de placement, progression, multi-constructeurs, annulation/remboursement.
-- [ ] Bâtiments d'économie : centre-ville, huttes, grenier, camp, carrière, mine, champ, marché (échange).
-- [ ] Production d'unités : files, point de ralliement, annulation, plafond de population.
-- [ ] Recherches (forge) : améliorations de récolte et de stockage.
-- [ ] Réparation, suppression de bâtiments (avec confirmation).
-- [ ] HUD complet : ressources, panneau de sélection, actions, files, alertes, villageois inactifs.
-- [ ] Gestion des cas limites de l'Analyse §13.3 (économie, construction).
-- [ ] Tests de propriétés : conservation des ressources, aucun négatif, remboursements exacts.
-- [ ] Sauvegarde/chargement d'une partie en cours (premier test de bout en bout).
+- [x] Récolte (nourriture, bois, pierre, fer, or), capacité de portage, dépôt automatique au plus proche.
+- [x] Gestion de l'épuisement d'une ressource et recherche automatique de la suivante (≤ 10 cases) ; charge vidée avant de changer de source (ordre `deposit`).
+- [x] Construction : aperçu fantôme (vert/rouge, silhouette), validation de placement (terrain, occupation, exploration, unités ennemies), progression, multi-constructeurs à rendement décroissant, annulation/remboursement exact.
+- [x] Bâtiments d'économie : centre-ville, huttes, grenier, camp de bûcherons, camp minier (carrière/mine), champ (durée limitée, replantation payante, auto-replantation), marché (échange avec frais).
+- [x] Production d'unités : files (5 max), point de ralliement contextuel, annulation (remboursement 100 %), plafond de population (la production attend de la place).
+- [x] Recherches (forge) : améliorations de récolte et de portage. *Provisoire : forge et marché sont à l'âge I tant que le changement d'âge n'existe pas (Phase 5) ; seule la donnée change ensuite.*
+- [x] Réparation (coût proportionnel, s'arrête sans fonds), suppression de bâtiments (confirmation obligatoire, partie en pause).
+- [x] HUD complet : ressources, panneau de sélection, actions, files, alertes, villageois inactifs, vitesses, pause, menu.
+- [x] Gestion des cas limites de l'Analyse §13.3 (économie, construction) : voir `test/sim/economy_test.dart`.
+- [x] Tests de propriétés : conservation des ressources, aucun négatif, remboursements exacts (`conservation_test.dart`).
+- [x] Sauvegarde/chargement d'une partie en cours (menu pause, autosauvegarde toutes les 2 min en 3 emplacements tournants, « Reprendre la partie »), premier test de bout en bout.
 
 **Porte de sortie**
-- Une partie « économie seule » de 30 min jouable sans bug, sauvegarde → chargement identique (hash), 5 000 parties headless aléatoires sans violation.
+- [x] Partie « économie seule » de 30 min (18 000 ticks) sans violation, sauvegarde → chargement identique (hash) puis continuation identique.
+- [x] 5 000 parties headless « économie » sans violation (`dart run tool/mass_sim.dart --games 5000 --mode economy`) + parties aléatoires avec invariants vérifiés à chaque tick.
+- [ ] « Jouable sans bug sur Windows et Android » : **session de test manuelle de 30 min à faire par vous** sur les deux plateformes (voir `docs/CHANGELOG.md`, section « À valider à la main »).
 
 ---
 
@@ -278,7 +285,8 @@ Tâches
 - [ ] Sessions de test planifiées : matrice appareils (3 téléphones, 1 tablette, 2 PC dont un faible), scénarios de l'Analyse §13.3 déroulés un par un et cochés.
 - [ ] Test de soak : 4 h de jeu continu, mémoire stable, pas de fuite.
 - [ ] Tests de cycle de vie Android : appel entrant, retour, rotation, tuage par le système, économie d'énergie, stockage presque plein.
-- [ ] Tests Windows : veille, changement de moniteur / DPI, perte de focus, fermeture brutale pendant sauvegarde.
+- [ ] Tests Windows : veille, changement de moniteur / DPI, perte de focus, fermeture brutale pendant sauvegarde, bascule plein écran répétée 500 fois, fermeture par ✕ / Alt+F4 / arrêt de session pendant une partie, vérification qu'aucun processus ne subsiste, second lancement (instance unique), reprise après arrêt brutal.
+- [ ] Tests responsive : téléphones allongés (21:9), tablettes (4:3), encoches, rotation entre les deux paysages, échelle d'interface 150 %, fenêtre redimensionnée à la taille minimale.
 - [ ] Fuzzing d'entrées (clics/touches aléatoires pendant des heures) sans crash.
 - [ ] Revue de sécurité (`/security-review`) : lecture des fichiers de sauvegarde (aucune exécution de contenu, tailles bornées), chemins de fichiers, permissions.
 - [ ] Revue de code intégrale (`/code-review`) module par module.

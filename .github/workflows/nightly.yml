@@ -1,0 +1,36 @@
+name: Simulation de masse (nuit)
+
+# Portes de sortie des phases 1 à 4 à pleine échelle :
+#  - 1 000 graines × 10 000 ticks (déterminisme), 10 000 cartes, invariants ;
+#  - 5 000 parties headless « économie ».
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  full-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.4
+          cache: true
+      - run: flutter pub get
+      - name: Tests à pleine échelle
+        run: flutter test test/sim --exclude-tags golden
+        env:
+          SIM_FULL: '1'
+      - name: 5 000 parties économie
+        run: dart run tool/mass_sim.dart --games 5000 --ticks 2500 --mode economy
+      - name: Parties aléatoires (fuzz) avec double exécution
+        run: dart run tool/mass_sim.dart --games 1000 --ticks 3000 --check-determinism
+      - name: Journaux d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-failures
+          path: build/sim_failures

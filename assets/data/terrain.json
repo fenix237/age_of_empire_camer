@@ -1,0 +1,14 @@
+{
+  "terrain": [
+    {"id": "grass",    "walkable": true,  "speedPercent": 100, "moveCost": 10, "buildable": true},
+    {"id": "dirt",     "walkable": true,  "speedPercent": 100, "moveCost": 10, "buildable": true},
+    {"id": "sand",     "walkable": true,  "speedPercent": 90,  "moveCost": 12, "buildable": true},
+    {"id": "savanna",  "walkable": true,  "speedPercent": 100, "moveCost": 10, "buildable": true},
+    {"id": "shallow",  "walkable": true,  "speedPercent": 60,  "moveCost": 25, "buildable": false},
+    {"id": "deep",     "walkable": false, "speedPercent": 0,   "moveCost": 10, "buildable": false},
+    {"id": "mountain", "walkable": false, "speedPercent": 0,   "moveCost": 10, "buildable": false},
+    {"id": "road",     "walkable": true,  "speedPercent": 130, "moveCost": 10, "buildable": true},
+    {"id": "marsh",    "walkable": true,  "speedPercent": 70,  "moveCost": 20, "buildable": false},
+    {"id": "cliff",    "walkable": false, "speedPercent": 0,   "moveCost": 10, "buildable": false}
+  ]
+}

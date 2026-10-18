@@ -1,0 +1,16 @@
+{
+  "techs": [
+    {"id": "carry_1", "age": 0, "cost": {"food": 100, "wood": 50}, "researchSeconds": 25,
+     "effects": [{"stat": "carry", "add": 5}]},
+    {"id": "gather_food_1", "age": 0, "cost": {"food": 100, "wood": 75}, "researchSeconds": 30,
+     "effects": [{"stat": "gather", "res": "food", "percent": 20}]},
+    {"id": "gather_wood_1", "age": 0, "cost": {"food": 100, "wood": 50}, "researchSeconds": 30,
+     "effects": [{"stat": "gather", "res": "wood", "percent": 20}]},
+    {"id": "gather_stone_1", "age": 0, "cost": {"food": 100, "wood": 75}, "researchSeconds": 30,
+     "effects": [{"stat": "gather", "res": "stone", "percent": 20}]},
+    {"id": "gather_iron_1", "age": 0, "cost": {"food": 100, "wood": 75}, "researchSeconds": 30,
+     "effects": [{"stat": "gather", "res": "iron", "percent": 20}]},
+    {"id": "gather_gold_1", "age": 0, "cost": {"food": 100, "wood": 75}, "researchSeconds": 30,
+     "effects": [{"stat": "gather", "res": "gold", "percent": 20}]}
+  ]
+}
