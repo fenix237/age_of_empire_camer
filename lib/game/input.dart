@@ -248,8 +248,10 @@ class GameInput {
       c.updateGhost(pos);
       return; // la confirmation passe par le bouton ✓ du HUD
     }
-    final hit = c.pick(pos, touch: true);
     final sel = c.selection;
+    // Avec une sélection, un appui près d'un bâtiment sur le sol doit rester
+    // un ordre de déplacement : pas de tolérance sur les cases voisines.
+    final hit = c.pick(pos, touch: true, buildingNeighbors: sel.isEmpty);
     final ownUnit =
         hit.kind == PickKind.unit &&
         c.world.units[hit.id]?.owner == c.localPlayer;

@@ -175,12 +175,17 @@ class GameController extends ChangeNotifier {
 
   // ───────────────────────── Sélection ─────────────────────────
 
-  PickResult pick(Offset screen, {bool touch = false}) => pickAt(
+  PickResult pick(
+    Offset screen, {
+    bool touch = false,
+    bool buildingNeighbors = true,
+  }) => pickAt(
     world,
     camera,
     screen,
     tolerance: touch ? 28 : 22,
     preferOwner: localPlayer,
+    buildingNeighbors: buildingNeighbors,
   );
 
   /// Clic/appui de sélection. Renvoie ce qui a été désigné.
@@ -269,7 +274,7 @@ class GameController extends ChangeNotifier {
 
   /// Ordre contextuel (clic droit / appui sur la destination).
   void orderAt(Offset screen, {bool queue = false, bool touch = false}) {
-    final r = pick(screen, touch: touch);
+    final r = pick(screen, touch: touch, buildingNeighbors: false);
     final t = camera.screenToTile(screen);
     final tx = t.x.clamp(0, world.map.width - 1);
     final ty = t.y.clamp(0, world.map.height - 1);

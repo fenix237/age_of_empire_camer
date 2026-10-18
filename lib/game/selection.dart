@@ -35,12 +35,16 @@ Offset unitScreenPos(GameCamera cam, Unit u) {
 /// - Priorité : unité > bâtiment > ressource.
 /// - [tolerance] (px écran) agrandit la zone de clic : au toucher, le doigt
 ///   cache la cible, on choisit la plus proche dans un rayon de 28 dp.
+/// - [buildingNeighbors] étend cette tolérance aux bâtiments des cases
+///   voisines ; à désactiver quand on donne un ordre (sinon un appui sur le sol
+///   près du centre-ville serait pris pour un ordre « garnison »).
 PickResult pickAt(
   World w,
   GameCamera cam,
   Offset screen, {
   double tolerance = 22,
   int? preferOwner,
+  bool buildingNeighbors = true,
 }) {
   Unit? best;
   var bestD = tolerance * tolerance;
@@ -93,7 +97,7 @@ PickResult pickAt(
       if (o == 0) continue;
       final centre = cam.worldToScreen(Iso.tileCenter(x, y));
       if ((centre - screen).distance > tolerance * 2) continue;
-      if (w.buildings.containsKey(o)) {
+      if (buildingNeighbors && w.buildings.containsKey(o)) {
         return PickResult(PickKind.building, o, x, y);
       }
       if (w.nodes.containsKey(o)) {
