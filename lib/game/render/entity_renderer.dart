@@ -6,6 +6,7 @@ import 'package:age_of_empire_camer/game/depth_sorter.dart';
 import 'package:age_of_empire_camer/game/iso.dart';
 import 'package:age_of_empire_camer/game/render/assets.dart';
 import 'package:age_of_empire_camer/game/selection.dart';
+import 'package:age_of_empire_camer/sim/data/defs.dart';
 import 'package:age_of_empire_camer/sim/world/entities.dart';
 import 'package:age_of_empire_camer/sim/world/player.dart';
 import 'package:age_of_empire_camer/sim/world/world.dart';
@@ -138,6 +139,7 @@ class EntityRenderer {
               anchor,
               SpriteContext(
                 team: b.owner,
+                time: time,
                 progress: progress,
                 footprintW: b.def.width,
                 footprintH: b.def.height,
@@ -186,8 +188,11 @@ class EntityRenderer {
       final fy = u.py + (u.y - u.py) * alpha;
       final tfx = fx / 256.0;
       final tfy = fy / 256.0;
-      final anchor = Iso.toWorld(tfx, tfy);
+      final base = Iso.toWorld(tfx, tfy);
       final moving = u.px != u.x || u.py != u.y;
+      final look = _look(w, u, base, moving);
+      // Au travail, l'unité se place contre sa cible : le geste a lieu dessus.
+      final anchor = base + look.shift;
       final selected = sel.contains(u.id);
       out.add(
         Drawable(
@@ -213,8 +218,13 @@ class EntityRenderer {
                 moving: moving,
                 seed: u.id,
                 scale: unitScale,
+                action: look.action,
+                faceRight: look.faceRight,
+                faceDown: look.faceDown,
+                carry: look.carry,
               ),
             );
+            if (u.effects.isNotEmpty) _statusIcons(c, anchor, u, time);
             if (u.hp < u.def.hp || selected) {
               _hpBar(c, anchor.translate(0, -36 * unitScale), u.hp / u.def.hp);
             }
@@ -229,11 +239,181 @@ class EntityRenderer {
         ),
       );
     }
+    if (_facing.length > w.units.length + 128) {
+      _facing.removeWhere((id, _) => !w.units.containsKey(id));
+      _shift.removeWhere((id, _) => !w.units.containsKey(id));
+    }
     buildMicros = clock.elapsedMicroseconds;
     clock.reset();
     final sorted = DepthSorter.sort(out);
     sortMicros = clock.elapsedMicroseconds;
     return sorted;
+  }
+
+  /// Dernière orientation connue par unité (bit 0 : vers la droite, bit 1 :
+  /// de face) : une unité immobile garde son regard.
+  final Map<int, int> _facing = <int, int>{};
+
+  /// Décalage de rendu courant (px) de l'unité vers sa cible, lissé.
+  final Map<int, Offset> _shift = <int, Offset>{};
+
+  /// Distance (px / échelle) entre l'unité et sa cible quand elle travaille.
+  static const double _standoff = 23;
+
+  /// Geste, orientation et charge d'une unité d'après son état de simulation.
+  _UnitLook _look(World w, Unit u, Offset anchor, bool moving) {
+    var bits = _facing[u.id] ?? 3;
+    Offset? toward;
+    Offset? contact; // point de la cible touché par l'outil (écran)
+    var action = UnitAction.idle;
+    final ux = u.x / 256.0;
+    final uy = u.y / 256.0;
+    Offset closest(double x0, double y0, double x1, double y1) => Iso.toWorld(
+      ux.clamp(x0, x1),
+      uy.clamp(y0, y1),
+    );
+    if (moving) {
+      action = UnitAction.walk;
+      toward =
+          Iso.toWorld(u.x / 256.0, u.y / 256.0) -
+          Iso.toWorld(u.px / 256.0, u.py / 256.0);
+    } else {
+      final target = u.targetId;
+      Offset? at;
+      var near = false;
+      switch (u.state) {
+        case UnitState.gathering:
+          if (u.phase != Phase.work) break;
+          final n = w.nodes[target];
+          final b = w.buildings[target];
+          if (n != null) {
+            at = Iso.toWorld(n.tx + 0.5, n.ty + 0.5);
+            // Le sprite est dessiné au centre de la case : on vise entre le
+            // bord le plus proche et le centre.
+            contact = Offset.lerp(
+              closest(n.tx.toDouble(), n.ty.toDouble(), n.tx + 1.0, n.ty + 1.0),
+              at,
+              0.7,
+            );
+            action = switch (n.def.id) {
+              'tree' => UnitAction.chop,
+              'berries' => UnitAction.forage,
+              'game' => UnitAction.hunt,
+              _ => UnitAction.mine,
+            };
+          } else if (b != null) {
+            at = Iso.toWorld(b.tx + b.def.width / 2, b.ty + b.def.height / 2);
+            action = UnitAction.farm;
+          }
+        case UnitState.building:
+          final b = w.buildings[target];
+          if (b != null) {
+            at = Iso.toWorld(b.tx + b.def.width / 2, b.ty + b.def.height / 2);
+            contact = closest(
+              b.tx.toDouble(),
+              b.ty.toDouble(),
+              (b.tx + b.def.width).toDouble(),
+              (b.ty + b.def.height).toDouble(),
+            );
+            action = UnitAction.build;
+          }
+        case UnitState.attacking:
+          final e = w.units[target];
+          final b = w.buildings[target];
+          double? dist;
+          if (e != null) {
+            at = Iso.toWorld(e.x / 256.0, e.y / 256.0);
+            dist = math.sqrt(
+              math.pow((e.x - u.x) / 256.0, 2) +
+                  math.pow((e.y - u.y) / 256.0, 2),
+            );
+            contact = at;
+          } else if (b != null) {
+            at = Iso.toWorld(b.tx + b.def.width / 2, b.ty + b.def.height / 2);
+            dist = math.sqrt(
+              math.pow(b.tx + b.def.width / 2 - u.x / 256.0, 2) +
+                  math.pow(b.ty + b.def.height / 2 - u.y / 256.0, 2),
+            );
+            dist -= math.max(b.def.width, b.def.height) / 2;
+            contact = closest(
+              b.tx.toDouble(),
+              b.ty.toDouble(),
+              (b.tx + b.def.width).toDouble(),
+              (b.ty + b.def.height).toDouble(),
+            );
+          }
+          if (dist != null) {
+            near = dist <= u.def.range + 1.8;
+            if (near) {
+              action = u.def.range > 0 || u.def.classes.contains('siege')
+                  ? UnitAction.shoot
+                  : UnitAction.melee;
+            }
+          }
+        case UnitState.idle:
+        case UnitState.moving:
+        case UnitState.garrisoned:
+        case UnitState.dead:
+          break;
+      }
+      if (at != null && action != UnitAction.idle) {
+        toward = at - Iso.toWorld(u.x / 256.0, u.y / 256.0);
+      }
+    }
+    // Seuls les gestes de contact se collent à la cible (pas l'arc ni les champs).
+    final melee =
+        action == UnitAction.melee && !u.def.classes.contains('siege');
+    final contactAction =
+        melee ||
+        action == UnitAction.chop ||
+        action == UnitAction.forage ||
+        action == UnitAction.mine ||
+        action == UnitAction.hunt ||
+        action == UnitAction.build;
+    var goal = Offset.zero;
+    if (contact != null && contactAction) {
+      final dxs = contact.dx - anchor.dx;
+      final sgn = dxs.abs() > 3 ? dxs.sign : (bits & 1 != 0 ? 1.0 : -1.0);
+      final dest = Offset(
+        contact.dx - sgn * _standoff * unitScale,
+        contact.dy + 1,
+      );
+      if ((dest - anchor).distance < 70 * unitScale) {
+        goal = dest - anchor;
+        bits = sgn > 0 ? (bits | 1) : (bits & ~1);
+        toward = Offset(sgn, 0);
+      }
+    }
+    final cur = _shift[u.id] ?? Offset.zero;
+    var shift = Offset.lerp(cur, goal, 0.25)!;
+    if (goal == Offset.zero && shift.distance < 0.3) {
+      shift = Offset.zero;
+      _shift.remove(u.id);
+    } else {
+      _shift[u.id] = shift;
+    }
+    if (toward != null) {
+      if (toward.dx.abs() > 0.5) {
+        bits = toward.dx > 0 ? (bits | 1) : (bits & ~1);
+      }
+      if (toward.dy.abs() > 0.5) {
+        bits = toward.dy > 0 ? (bits | 2) : (bits & ~2);
+      }
+      _facing[u.id] = bits;
+    }
+    final working =
+        action == UnitAction.chop ||
+        action == UnitAction.forage ||
+        action == UnitAction.mine ||
+        action == UnitAction.farm ||
+        action == UnitAction.hunt;
+    return _UnitLook(
+      action: action,
+      faceRight: bits & 1 != 0,
+      faceDown: bits & 2 != 0,
+      carry: working ? u.gatherRes : u.carryRes,
+      shift: shift,
+    );
   }
 
   void paint(Canvas canvas, List<Drawable> sorted) {
@@ -271,6 +451,61 @@ class EntityRenderer {
           ..strokeWidth = 1.2
           ..color = team,
       );
+  }
+
+  /// Effets actifs : étoiles (étourdi), anneaux (ralenti, immobilisé) et
+  /// pastilles de bonus / malus au-dessus de la barre de vie.
+  static void _statusIcons(Canvas c, Offset a, Unit u, double time) {
+    final kinds = <EffectKind, int>{};
+    for (final e in u.effects) {
+      kinds[e.kind] = e.value;
+    }
+    final head = a.translate(0, -31 * unitScale);
+    if (kinds.containsKey(EffectKind.stun)) {
+      for (var i = 0; i < 3; i++) {
+        final ang = time * 5 + i * 2.094;
+        final p = head.translate(math.cos(ang) * 10, math.sin(ang) * 3.5 - 2);
+        c.drawPath(
+          Path()
+            ..moveTo(p.dx, p.dy - 3.5)
+            ..lineTo(p.dx + 1.2, p.dy - 1.2)
+            ..lineTo(p.dx + 3.5, p.dy)
+            ..lineTo(p.dx + 1.2, p.dy + 1.2)
+            ..lineTo(p.dx, p.dy + 3.5)
+            ..lineTo(p.dx - 1.2, p.dy + 1.2)
+            ..lineTo(p.dx - 3.5, p.dy)
+            ..lineTo(p.dx - 1.2, p.dy - 1.2)
+            ..close(),
+          Paint()..color = const Color(0xFFFFE066),
+        );
+      }
+    }
+    void ring(Color col) => c.drawOval(
+      Rect.fromCenter(center: a, width: 40 * unitScale, height: 20 * unitScale),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = col.withValues(alpha: 0.85),
+    );
+    if (kinds.containsKey(EffectKind.slow)) ring(const Color(0xFF4FA3C7));
+    if (kinds.containsKey(EffectKind.root)) ring(const Color(0xFF9A6B3A));
+    final badges = <Color>[
+      if ((kinds[EffectKind.attackPct] ?? 0) > 0) const Color(0xFFE04040),
+      if ((kinds[EffectKind.attackPct] ?? 0) < 0) const Color(0xFF8E4FC9),
+      if (kinds.containsKey(EffectKind.speed)) const Color(0xFFFFD35A),
+      if (kinds.containsKey(EffectKind.armorAdd)) const Color(0xFF9AA3AB),
+      if (kinds.containsKey(EffectKind.gatherPct)) const Color(0xFF8BC34A),
+      if (kinds.containsKey(EffectKind.dot)) const Color(0xFF6FBF3A),
+    ];
+    for (var i = 0; i < badges.length; i++) {
+      final p = a.translate(
+        (i - (badges.length - 1) / 2) * 9,
+        -44 * unitScale,
+      );
+      c
+        ..drawCircle(p, 3.6, Paint()..color = const Color(0xCC000000))
+        ..drawCircle(p, 2.6, Paint()..color = badges[i]);
+    }
   }
 
   static void _selectionOutline(Canvas c, Building b) {
@@ -322,6 +557,22 @@ class EntityRenderer {
 
   /// Distance de fondu des unités en bord de vue (utilitaire de test).
   static double edgeFade(double d) => math.max(0, 1 - d / 100);
+}
+
+class _UnitLook {
+  const _UnitLook({
+    required this.action,
+    required this.faceRight,
+    required this.faceDown,
+    required this.carry,
+    required this.shift,
+  });
+
+  final UnitAction action;
+  final bool faceRight;
+  final bool faceDown;
+  final int carry;
+  final Offset shift;
 }
 
 Color resourceColorByIndex(int i) => const <Color>[

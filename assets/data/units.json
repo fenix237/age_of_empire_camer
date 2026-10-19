@@ -2,33 +2,123 @@
   "units": [
     {
       "id": "villager", "age": 0, "cost": {"food": 50}, "trainSeconds": 15,
-      "hp": 25, "attack": 3, "armor": 0, "range": 0, "attackCooldownTicks": 15,
+      "hp": 25, "attack": 3, "armor": 0, "pierceArmor": 0, "range": 0, "attackCooldownTicks": 15,
       "speed": 1000, "vision": 6, "pop": 1, "villager": true, "carryCapacity": 10,
-      "gatherRates": {"food": 650, "wood": 750, "stone": 600, "iron": 550, "gold": 500}
+      "gatherRates": {"food": 650, "wood": 750, "stone": 600, "iron": 550, "gold": 500},
+      "powers": ["rally_cry"]
     },
     {
       "id": "spearman", "age": 0, "cost": {"food": 50, "wood": 25}, "trainSeconds": 20,
-      "hp": 45, "attack": 4, "armor": 0, "range": 0, "attackCooldownTicks": 15,
+      "hp": 45, "attack": 4, "armor": 0, "pierceArmor": 1, "range": 0, "attackCooldownTicks": 15,
       "speed": 950, "vision": 7, "pop": 1, "villager": false, "carryCapacity": 0,
-      "gatherRates": {}
+      "gatherRates": {}, "classes": ["infantry"], "bonus": {"cavalry": 12},
+      "powers": ["spear_wall"]
     },
     {
       "id": "archer", "age": 1, "cost": {"wood": 40, "gold": 30}, "trainSeconds": 20,
-      "hp": 30, "attack": 5, "armor": 0, "range": 5, "attackCooldownTicks": 20,
+      "hp": 30, "attack": 5, "armor": 0, "pierceArmor": 0, "range": 5, "attackCooldownTicks": 20,
       "speed": 1000, "vision": 9, "pop": 1, "villager": false, "carryCapacity": 0,
-      "gatherRates": {}
+      "gatherRates": {}, "classes": ["archer"], "damageType": "pierce", "projectileSpeed": 9000,
+      "powers": ["arrow_rain"]
     },
     {
       "id": "iron_warrior", "age": 1, "cost": {"food": 60, "iron": 40}, "trainSeconds": 25,
-      "hp": 70, "attack": 7, "armor": 1, "range": 0, "attackCooldownTicks": 15,
+      "hp": 70, "attack": 7, "armor": 1, "pierceArmor": 2, "range": 0, "attackCooldownTicks": 15,
       "speed": 950, "vision": 7, "pop": 1, "villager": false, "carryCapacity": 0,
-      "gatherRates": {}
+      "gatherRates": {}, "classes": ["infantry"],
+      "powers": ["crushing_blow"]
     },
     {
       "id": "horseman", "age": 2, "cost": {"food": 80, "iron": 40}, "trainSeconds": 30,
-      "hp": 80, "attack": 6, "armor": 1, "range": 0, "attackCooldownTicks": 15,
+      "hp": 80, "attack": 6, "armor": 1, "pierceArmor": 1, "range": 0, "attackCooldownTicks": 15,
       "speed": 1700, "vision": 8, "pop": 1, "villager": false, "carryCapacity": 0,
-      "gatherRates": {}
+      "gatherRates": {}, "classes": ["cavalry"], "bonus": {"archer": 8},
+      "powers": ["charge"]
+    },
+    {
+      "id": "catapult", "age": 2, "cost": {"wood": 120, "iron": 60}, "trainSeconds": 35,
+      "hp": 60, "attack": 12, "armor": 0, "pierceArmor": 6, "range": 8, "attackCooldownTicks": 40,
+      "speed": 600, "vision": 8, "pop": 2, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["siege"], "damageType": "siege", "bonus": {"building": 28},
+      "projectileSpeed": 5000, "splash": 1000
+    },
+    {
+      "id": "royal_guard", "age": 3, "cost": {"food": 100, "iron": 60, "gold": 40}, "trainSeconds": 40,
+      "hp": 140, "attack": 12, "armor": 2, "pierceArmor": 3, "range": 0, "attackCooldownTicks": 15,
+      "speed": 1000, "vision": 8, "pop": 2, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["infantry"],
+      "powers": ["lion_fury"]
+    },
+
+    {
+      "id": "river_guard", "age": 1, "cost": {"food": 60, "wood": 30}, "trainSeconds": 22,
+      "hp": 70, "attack": 6, "armor": 1, "pierceArmor": 2, "range": 0, "attackCooldownTicks": 15,
+      "speed": 950, "vision": 7, "pop": 1, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["infantry"], "bonus": {"cavalry": 6}, "clan": "fleuve"
+    },
+    {
+      "id": "net_thrower", "age": 1, "cost": {"food": 20, "wood": 40}, "trainSeconds": 20,
+      "hp": 35, "attack": 4, "armor": 0, "pierceArmor": 0, "range": 4, "attackCooldownTicks": 20,
+      "speed": 1000, "vision": 8, "pop": 1, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["archer"], "damageType": "pierce", "projectileSpeed": 8000,
+      "onHit": {"kind": "slow", "value": 30, "seconds": 3}, "clan": "pecheurs"
+    },
+    {
+      "id": "forge_hammer", "age": 2, "cost": {"food": 70, "iron": 50}, "trainSeconds": 32,
+      "hp": 110, "attack": 10, "armor": 3, "pierceArmor": 3, "range": 0, "attackCooldownTicks": 18,
+      "speed": 800, "vision": 7, "pop": 2, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["infantry"], "bonus": {"building": 6}, "clan": "forgerons"
+    },
+    {
+      "id": "wind_rider", "age": 2, "cost": {"food": 70, "gold": 50}, "trainSeconds": 32,
+      "hp": 55, "attack": 5, "armor": 0, "pierceArmor": 0, "range": 4, "attackCooldownTicks": 18,
+      "speed": 1800, "vision": 9, "pop": 1, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["cavalry"], "damageType": "pierce", "projectileSpeed": 9000,
+      "clan": "cavaliers"
+    },
+    {
+      "id": "raven", "age": 1, "cost": {"food": 50, "iron": 30}, "trainSeconds": 22,
+      "hp": 40, "attack": 8, "armor": 0, "pierceArmor": 0, "range": 0, "attackCooldownTicks": 12,
+      "speed": 1500, "vision": 8, "pop": 1, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["infantry"], "clan": "corbeaux"
+    },
+
+    {
+      "id": "hero_mbarga", "age": 2, "cost": {"food": 100, "gold": 200}, "trainSeconds": 40,
+      "hp": 420, "attack": 14, "armor": 2, "pierceArmor": 3, "range": 0, "attackCooldownTicks": 14,
+      "speed": 1000, "vision": 9, "pop": 3, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["hero", "infantry"], "clan": "fleuve",
+      "powers": ["ancestor_drum", "unity", "ancestor_aura"]
+    },
+    {
+      "id": "hero_sanaga", "age": 2, "cost": {"food": 100, "gold": 200}, "trainSeconds": 40,
+      "hp": 360, "attack": 11, "armor": 1, "pierceArmor": 3, "range": 4, "attackCooldownTicks": 16,
+      "speed": 1050, "vision": 9, "pop": 3, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["hero", "archer"], "damageType": "pierce", "projectileSpeed": 9000,
+      "clan": "pecheurs",
+      "powers": ["tide", "flood", "tide_aura"]
+    },
+    {
+      "id": "hero_ngolo", "age": 2, "cost": {"food": 100, "gold": 200}, "trainSeconds": 40,
+      "hp": 520, "attack": 16, "armor": 3, "pierceArmor": 4, "range": 0, "attackCooldownTicks": 16,
+      "speed": 900, "vision": 8, "pop": 3, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["hero", "infantry"], "clan": "forgerons",
+      "bonus": {"building": 8},
+      "powers": ["war_forge", "iron_thunder", "forge_aura"]
+    },
+    {
+      "id": "hero_dikoume", "age": 2, "cost": {"food": 100, "gold": 200}, "trainSeconds": 40,
+      "hp": 400, "attack": 13, "armor": 2, "pierceArmor": 2, "range": 0, "attackCooldownTicks": 13,
+      "speed": 1800, "vision": 10, "pop": 3, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["hero", "cavalry"], "clan": "cavaliers",
+      "powers": ["wind_gallop", "stampede", "wind_aura"]
+    },
+    {
+      "id": "hero_kaba", "age": 2, "cost": {"food": 100, "gold": 250}, "trainSeconds": 40,
+      "hp": 450, "attack": 15, "armor": 2, "pierceArmor": 3, "range": 0, "attackCooldownTicks": 12,
+      "speed": 1300, "vision": 10, "pop": 3, "villager": false, "carryCapacity": 0,
+      "gatherRates": {}, "classes": ["hero", "infantry"], "clan": "corbeaux",
+      "powers": ["raven_swarm", "raven_storm", "raven_aura"]
     }
   ]
 }

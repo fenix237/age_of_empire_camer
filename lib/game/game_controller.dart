@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:age_of_empire_camer/game/camera.dart';
@@ -10,11 +11,14 @@ import 'package:age_of_empire_camer/game/selection.dart';
 import 'package:age_of_empire_camer/meta/save_store.dart';
 import 'package:age_of_empire_camer/sim/commands/command.dart';
 import 'package:age_of_empire_camer/sim/commands/contextual.dart';
+import 'package:age_of_empire_camer/sim/core/fixed_point.dart';
 import 'package:age_of_empire_camer/sim/data/defs.dart';
 import 'package:age_of_empire_camer/sim/data/defs_loader.dart';
 import 'package:age_of_empire_camer/sim/data/res.dart';
+import 'package:age_of_empire_camer/sim/systems/combat.dart';
 import 'package:age_of_empire_camer/sim/systems/construction.dart';
 import 'package:age_of_empire_camer/sim/world/entities.dart';
+import 'package:age_of_empire_camer/sim/world/player.dart';
 import 'package:age_of_empire_camer/sim/world/world.dart';
 import 'package:flutter/foundation.dart';
 
@@ -27,6 +31,14 @@ class GameAlert {
   final int tileY;
   final double time;
   final String detail;
+}
+
+/// Ciblage en cours d'un pouvoir d'unité ou d'un sort de bataille : le prochain
+/// clic désigne la cible.
+class PowerTargeting {
+  const PowerTargeting(this.power);
+
+  final PowerDef power;
 }
 
 /// Notifie à chaque image de rendu (60 Hz) : mini-carte, effets continus.
@@ -73,6 +85,9 @@ class GameController extends ChangeNotifier {
   final List<OrderMarker> markers = <OrderMarker>[];
   final List<GameAlert> alerts = <GameAlert>[];
 
+  /// Ondes de zone des pouvoirs et sorts lancés (rendu seul).
+  final List<ZoneFx> zones = <ZoneFx>[];
+
   /// Temps réel écoulé depuis le début (animations, marqueurs).
   double time = 0;
 
@@ -103,6 +118,23 @@ class GameController extends ChangeNotifier {
   /// Mode attente de confirmation de suppression d'un bâtiment.
   int pendingDelete = -1;
 
+  /// Pouvoir ou sort en attente d'une cible (clic suivant).
+  PowerTargeting? targeting;
+
+  /// Dernière position du pointeur (aperçu de zone des pouvoirs).
+  Offset? hoverScreen;
+
+  /// Défi du jour en cours (date `aaaa-mm-jj`), sinon null.
+  String? dailyKey;
+
+  /// Fin de partie déjà présentée au joueur (il peut continuer à regarder).
+  bool endAcknowledged = false;
+
+  /// Aucun joueur humain : l'interface n'émet aucun ordre et tout est visible.
+  bool get spectator => world.players.every((p) => p.aiLevel >= 0);
+
+  Player get me => world.players[localPlayer];
+
   // ───────────────────────── Boucle ─────────────────────────
 
   /// Appelé à chaque frame de rendu avec le temps réel écoulé.
@@ -116,6 +148,7 @@ class GameController extends ChangeNotifier {
     }
     if (n > 0) selection.prune(world);
     markers.removeWhere((m) => time - m.start > OrderMarker.duration);
+    zones.removeWhere((z) => time - z.start > ZoneFx.duration);
     alerts.removeWhere((a) => time - a.time > 8);
     if (placing != null) _refreshGhost();
     if (saveStore != null && time - _lastAutosave > autosaveSeconds) {
@@ -125,7 +158,9 @@ class GameController extends ChangeNotifier {
     // Le HUD ne se reconstruit qu'à chaque tick de simulation (10 Hz) ou
     // lorsqu'une animation d'interface est en cours ; la mini-carte suit la
     // caméra à chaque image via [frameClock].
-    if (n > 0 || placing != null || markers.isNotEmpty) notifyListeners();
+    if (n > 0 || placing != null || markers.isNotEmpty || zones.isNotEmpty) {
+      notifyListeners();
+    }
     frameClock.tick();
   }
 
@@ -145,6 +180,8 @@ class GameController extends ChangeNotifier {
         case EventType.researchDone:
         case EventType.buildingDestroyed:
         case EventType.unitDied:
+        case EventType.ageAdvanced:
+        case EventType.playerDefeated:
           alerts.add(GameAlert(e.type, e.x, e.y, time));
         case EventType.commandRejected:
           lastRejection = CmdResult.values[e.id].name;
@@ -270,7 +307,10 @@ class GameController extends ChangeNotifier {
 
   // ───────────────────────── Ordres ─────────────────────────
 
-  void _send(Iterable<Command> cmds) => cmds.forEach(world.submit);
+  void _send(Iterable<Command> cmds) {
+    if (spectator) return;
+    cmds.forEach(world.submit);
+  }
 
   /// Ordre contextuel (clic droit / appui sur la destination).
   void orderAt(Offset screen, {bool queue = false, bool touch = false}) {
@@ -445,6 +485,218 @@ class GameController extends ChangeNotifier {
     }
     return best;
   }
+
+  // ───────────────────────── Pouvoirs, sorts, âges ─────────────────────────
+
+  List<Unit> get selectedUnits => <Unit>[
+    for (final id in selection.units)
+      if (world.units[id] != null && world.units[id]!.owner == localPlayer)
+        world.units[id]!,
+  ];
+
+  /// Pouvoirs actifs (hors auras) des unités sélectionnées, sans doublon.
+  List<PowerDef> get selectedPowers {
+    final out = <PowerDef>[];
+    for (final u in selectedUnits) {
+      for (var slot = 0; slot < u.def.powers.length; slot++) {
+        final pd = defs.power(u.def.powers[slot]);
+        if (!pd.aura && !pd.isSpell && !out.contains(pd)) out.add(pd);
+      }
+    }
+    return out;
+  }
+
+  /// Unités sélectionnées pouvant lancer [pd] maintenant (âge, recharge).
+  List<Unit> readyCasters(PowerDef pd) => <Unit>[
+    for (final u in selectedUnits)
+      if (_slotOf(u, pd) >= 0 &&
+          u.powerCd[_slotOf(u, pd)] == 0 &&
+          pd.age <= me.age &&
+          !isStunned(u))
+        u,
+  ];
+
+  int _slotOf(Unit u, PowerDef pd) => u.def.powers.indexOf(pd.id);
+
+  /// Recharge restante du pouvoir (secondes) pour l'unité qui en a le moins.
+  double powerCooldownSeconds(PowerDef pd) {
+    var best = -1;
+    for (final u in selectedUnits) {
+      final slot = _slotOf(u, pd);
+      if (slot < 0) continue;
+      if (best < 0 || u.powerCd[slot] < best) best = u.powerCd[slot];
+    }
+    return best < 0 ? 0 : best / 10;
+  }
+
+  void _reject(String name) {
+    lastRejection = name;
+    _rejectionAt = time;
+    notifyListeners();
+  }
+
+  /// Bouton d'un pouvoir : lancé tout de suite s'il vise le lanceur, sinon
+  /// demande une cible.
+  void beginPower(PowerDef pd) {
+    if (spectator) return;
+    if (pd.age > me.age) {
+      _reject('locked');
+      return;
+    }
+    final casters = readyCasters(pd);
+    if (casters.isEmpty) {
+      _reject('nothingToDo');
+      return;
+    }
+    if (pd.target == PowerTarget.self) {
+      _send(<Command>[
+        for (final u in casters) PowerCmd(localPlayer, u.id, _slotOf(u, pd)),
+      ]);
+      final first = casters.first;
+      _zoneFx(pd, Iso.fromFixed(first.x, first.y));
+      return;
+    }
+    targeting = PowerTargeting(pd);
+    notifyListeners();
+  }
+
+  /// Bouton d'un sort de bataille (énergie du tambour).
+  void beginSpell(PowerDef pd) {
+    if (spectator) return;
+    if (me.drum < pd.drumCost) {
+      _reject('cannotAfford');
+      return;
+    }
+    if (me.spellCd[pd.index] > 0) {
+      _reject('nothingToDo');
+      return;
+    }
+    targeting = PowerTargeting(pd);
+    notifyListeners();
+  }
+
+  /// Onde visuelle d'un pouvoir lancé en [at] (coordonnées monde de dessin).
+  void _zoneFx(PowerDef pd, Offset at) {
+    final col = pd.isSpell
+        ? const Color(0xFFFFE066)
+        : (pd.affects == PowerAffects.enemies
+              ? const Color(0xFFE0612B)
+              : const Color(0xFF3FD35A));
+    zones.add(ZoneFx(at, math.max(0.8, pd.radius / 1000), col, time));
+  }
+
+  void cancelTargeting() {
+    if (targeting == null) return;
+    targeting = null;
+    notifyListeners();
+  }
+
+  /// Le clic [screen] désigne la cible du pouvoir en attente. Renvoie vrai si
+  /// le clic a été consommé.
+  bool resolveTargeting(Offset screen, {bool touch = false}) {
+    final t = targeting;
+    if (t == null) return false;
+    final pd = t.power;
+    final tile = camera.screenToTile(screen);
+    final tx = tile.x.clamp(0, world.map.width - 1);
+    final ty = tile.y.clamp(0, world.map.height - 1);
+    if (pd.isSpell) {
+      _send(<Command>[SpellCmd(localPlayer, pd.index, tx, ty)]);
+      _zoneFx(pd, Iso.tileCenter(tx, ty));
+      targeting = null;
+      notifyListeners();
+      return true;
+    }
+    final casters = readyCasters(pd);
+    if (casters.isEmpty) {
+      targeting = null;
+      _reject('nothingToDo');
+      return true;
+    }
+    var targetId = -1;
+    if (pd.target == PowerTarget.unit) {
+      final hit = pick(screen, touch: touch);
+      if (hit.kind != PickKind.unit) {
+        _reject('wrongTarget');
+        return true;
+      }
+      targetId = hit.id;
+    }
+    // Le lanceur le plus proche de la cible s'en charge.
+    Unit? best;
+    var bestD = 1 << 60;
+    final cx = Fx.tileCenter(tx);
+    final cy = Fx.tileCenter(ty);
+    for (final u in casters) {
+      final dx = u.x - cx;
+      final dy = u.y - cy;
+      final d = dx * dx + dy * dy;
+      if (d < bestD) {
+        bestD = d;
+        best = u;
+      }
+    }
+    _send(<Command>[
+      PowerCmd(
+        localPlayer,
+        best!.id,
+        _slotOf(best, pd),
+        x: tx,
+        y: ty,
+        target: targetId,
+      ),
+    ]);
+    _zoneFx(pd, Iso.tileCenter(tx, ty));
+    targeting = null;
+    notifyListeners();
+    return true;
+  }
+
+  /// Lance la recherche du prochain âge : dans le bâtiment sélectionné s'il
+  /// convient, sinon dans le premier bâtiment disponible.
+  void ageUp() {
+    if (spectator) return;
+    final next = me.age + 1;
+    if (next >= defs.ages.length) {
+      _reject('nothingToDo');
+      return;
+    }
+    final age = defs.ages[next];
+    Building? pickB(bool Function(Building) ok) {
+      for (final b in world.buildings.values) {
+        if (b.owner == localPlayer && b.complete && ok(b)) return b;
+      }
+      return null;
+    }
+
+    bool fits(Building b) =>
+        b.def.agesUp && age.researchedAt.contains(b.def.id);
+    final selected = world.buildings[selection.building];
+    final target =
+        (selected != null && selected.owner == localPlayer && fits(selected))
+        ? selected
+        : (pickB((b) => fits(b) && b.queue.isEmpty) ?? pickB(fits));
+    if (target == null) {
+      _reject('locked');
+      return;
+    }
+    _send(<Command>[AgeUpCmd(localPlayer, target.id)]);
+  }
+
+  /// Prérequis manquants du prochain âge (identifiants de bâtiments).
+  List<String> missingForNextAge() {
+    final next = me.age + 1;
+    if (next >= defs.ages.length) return const <String>[];
+    return <String>[
+      for (final req in defs.ages[next].requiresBuildings)
+        if (!world.buildings.values.any(
+          (b) => b.owner == localPlayer && b.complete && b.def.id == req,
+        ))
+          req,
+    ];
+  }
+
+  void resign() => _send(<Command>[ResignCmd(localPlayer)]);
 
   // ───────────────────────── Production / recherche ─────────────────────────
 

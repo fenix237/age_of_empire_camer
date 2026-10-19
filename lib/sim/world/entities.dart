@@ -67,6 +67,41 @@ enum Stance { aggressive, defensive, passive, follow }
 /// Sous-phase d'une activité (récolte, construction…).
 enum Phase { approach, work, returning }
 
+/// Effet temporaire actif sur une unité.
+class ActiveEffect {
+  ActiveEffect(
+    this.kind,
+    this.power,
+    this.remaining,
+    this.value, [
+    this.src = -1,
+  ]);
+
+  final EffectKind kind;
+
+  /// Joueur à l'origine de l'effet (crédit des dégâts sur la durée).
+  final int src;
+
+  /// Indice du pouvoir source (-1 : coup spécial) : un même pouvoir ne se
+  /// cumule jamais avec lui-même, il rafraîchit sa durée.
+  final int power;
+  int remaining;
+  int value;
+
+  List<int> toJson() => <int>[kind.index, power, remaining, value, src];
+
+  static ActiveEffect fromJson(Object? j) {
+    final l = j! as List<dynamic>;
+    return ActiveEffect(
+      EffectKind.values[l[0] as int],
+      l[1] as int,
+      l[2] as int,
+      l[3] as int,
+      l[4] as int,
+    );
+  }
+}
+
 class Unit {
   Unit({
     required this.id,
@@ -75,6 +110,7 @@ class Unit {
     required this.x,
     required this.y,
   }) : hp = def.hp,
+       maxHp = def.hp,
        px = x,
        py = y;
 
@@ -91,6 +127,9 @@ class Unit {
   int py;
 
   int hp;
+
+  /// PV maximum (peut dépasser ceux de la définition via les recherches).
+  int maxHp;
   UnitState state = UnitState.idle;
   Stance stance = Stance.aggressive;
   Phase phase = Phase.approach;
@@ -132,6 +171,21 @@ class Unit {
   /// A avancé ce tick (transitoire, hors sauvegarde).
   bool traveling = false;
 
+  /// Effets actifs (ordre d'application = ordre de liste).
+  final List<ActiveEffect> effects = <ActiveEffect>[];
+
+  /// Temps de recharge restant des pouvoirs de la définition (ticks).
+  final List<int> powerCd = <int>[0, 0, 0];
+
+  /// Case de départ d'une poursuite déclenchée automatiquement : au-delà de
+  /// la laisse, l'unité abandonne et revient.
+  int homeX = 0;
+  int homeY = 0;
+  bool leashed = false;
+
+  /// Immunité aux étourdissements jusqu'à ce tick (après un étourdissement).
+  int stunImmuneUntil = 0;
+
   Vec2 get pos => Vec2(x, y);
   int get tileX => Fx.toInt(x);
   int get tileY => Fx.toInt(y);
@@ -158,9 +212,13 @@ class Unit {
     'x': x,
     'y': y,
     'hp': hp,
+    'maxhp': maxHp,
     'state': state.index,
     'stance': stance.index,
     'phase': phase.index,
+    'fx': <dynamic>[for (final e in effects) e.toJson()],
+    'pcd': powerCd,
+    'home': <int>[homeX, homeY, if (leashed) 1 else 0, stunImmuneUntil],
     'orders': <dynamic>[for (final o in orders) o.toJson()],
     'path': path,
     'pathIdx': pathIdx,
@@ -195,6 +253,7 @@ class Unit {
             y: j['y'] as int,
           )
           ..hp = j['hp'] as int
+          ..maxHp = j['maxhp'] as int
           ..state = UnitState.values[j['state'] as int]
           ..stance = Stance.values[j['stance'] as int]
           ..phase = Phase.values[j['phase'] as int]
@@ -222,6 +281,19 @@ class Unit {
     for (final o in j['orders'] as List<dynamic>) {
       u.orders.add(Order.fromJson(o));
     }
+    for (final e in j['fx'] as List<dynamic>) {
+      u.effects.add(ActiveEffect.fromJson(e));
+    }
+    final pcd = List<int>.from(j['pcd'] as List<dynamic>);
+    for (var i = 0; i < pcd.length && i < u.powerCd.length; i++) {
+      u.powerCd[i] = pcd[i];
+    }
+    final home = List<int>.from(j['home'] as List<dynamic>);
+    u
+      ..homeX = home[0]
+      ..homeY = home[1]
+      ..leashed = home[2] == 1
+      ..stunImmuneUntil = home[3];
     return u;
   }
 }
@@ -233,9 +305,13 @@ class QueueItem {
     required this.defIndex,
     required this.remaining,
     required this.paid,
+    this.isAge = false,
   });
 
   final bool isTech;
+
+  /// Recherche de changement d'âge : [defIndex] est l'âge visé.
+  final bool isAge;
   final int defIndex;
   int remaining;
 
@@ -244,6 +320,7 @@ class QueueItem {
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     't': isTech,
+    'a': isAge,
     'd': defIndex,
     'r': remaining,
     'p': paid.toJson(),
@@ -251,6 +328,7 @@ class QueueItem {
 
   static QueueItem fromJson(Map<String, dynamic> j) => QueueItem(
     isTech: j['t'] as bool,
+    isAge: (j['a'] as bool?) ?? false,
     defIndex: j['d'] as int,
     remaining: j['r'] as int,
     paid: Stock.fromJson(j['p']),
@@ -291,6 +369,9 @@ class Building {
   /// Dette de réparation en millièmes, par ressource.
   final List<int> repairDebt = List<int>.filled(Res.values.length, 0);
 
+  /// Recharge de l'attaque (tours, forteresse).
+  int cooldown = 0;
+
   /// Nombre de bâtisseurs ayant travaillé ce tick (transitoire).
   int buildersThisTick = 0;
   int repairersThisTick = 0;
@@ -322,6 +403,7 @@ class Building {
     'ry': rallyY,
     'rt': rallyTarget,
     'stock': stock,
+    'cd': cooldown,
     'garrisoned': garrisoned,
     'debt': repairDebt,
   };
@@ -341,7 +423,8 @@ class Building {
           ..rallyX = j['rx'] as int
           ..rallyY = j['ry'] as int
           ..rallyTarget = j['rt'] as int
-          ..stock = j['stock'] as int;
+          ..stock = j['stock'] as int
+          ..cooldown = j['cd'] as int;
     for (final q in j['queue'] as List<dynamic>) {
       b.queue.add(QueueItem.fromJson(q as Map<String, dynamic>));
     }
@@ -386,4 +469,84 @@ class ResourceNode {
         tx: j['tx'] as int,
         ty: j['ty'] as int,
       )..amount = j['amount'] as int;
+}
+
+/// Projectile en vol (flèche, boulet). Entièrement en virgule fixe.
+class Projectile {
+  Projectile({
+    required this.id,
+    required this.owner,
+    required this.srcId,
+    required this.srcUnitDef,
+    required this.srcBuildingDef,
+    required this.targetId,
+    required this.x,
+    required this.y,
+    required this.tx,
+    required this.ty,
+    required this.speed,
+    required this.atkPercent,
+    required this.ttl,
+    this.firstHit = false,
+  });
+
+  final int id;
+  final int owner;
+
+  /// Identifiant de l'attaquant (peut être mort au moment de l'impact).
+  final int srcId;
+
+  /// Définition de l'attaquant (unité ou bâtiment, -1 si absent).
+  final int srcUnitDef;
+  final int srcBuildingDef;
+  final int targetId;
+  int x;
+  int y;
+
+  /// Dernière position connue de la cible.
+  int tx;
+  int ty;
+  final int speed;
+
+  /// Multiplicateur de dégâts figé au tir (recherches, effets, hauteur).
+  final int atkPercent;
+  int ttl;
+  final bool firstHit;
+
+  List<int> toJson() => <int>[
+    id,
+    owner,
+    srcId,
+    srcUnitDef,
+    srcBuildingDef,
+    targetId,
+    x,
+    y,
+    tx,
+    ty,
+    speed,
+    atkPercent,
+    ttl,
+    if (firstHit) 1 else 0,
+  ];
+
+  static Projectile fromJson(Object? j) {
+    final l = List<int>.from(j! as List<dynamic>);
+    return Projectile(
+      id: l[0],
+      owner: l[1],
+      srcId: l[2],
+      srcUnitDef: l[3],
+      srcBuildingDef: l[4],
+      targetId: l[5],
+      x: l[6],
+      y: l[7],
+      tx: l[8],
+      ty: l[9],
+      speed: l[10],
+      atkPercent: l[11],
+      ttl: l[12],
+      firstHit: l[13] == 1,
+    );
+  }
 }

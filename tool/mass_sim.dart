@@ -2,14 +2,16 @@
 // parties « économie » scriptées, avec vérification des invariants à chaque
 // tick, double exécution pour le déterminisme, et journal des échecs.
 //
-//   dart run tool/mass_sim.dart --games 5000 --ticks 3000 [--mode fuzz|economy]
+//   dart run tool/mass_sim.dart --games 5000 --ticks 3000 [--mode fuzz|economy|ai]
 //       [--from 1] [--check-determinism] [--out build/sim_failures]
 //
 // Un échec écrit `seed_N.jsonl` rejouable avec `tool/replay.dart`.
 import 'dart:io';
 
+import 'package:age_of_empire_camer/sim/core/rng.dart';
 import 'package:age_of_empire_camer/sim/data/defs_loader.dart';
 import 'package:age_of_empire_camer/sim/game_setup.dart';
+import 'package:age_of_empire_camer/sim/systems/victory.dart';
 import 'package:age_of_empire_camer/sim/testing/command_fuzzer.dart';
 import 'package:age_of_empire_camer/sim/testing/economy_bot.dart';
 
@@ -90,6 +92,38 @@ void main(List<String> args) {
   int players,
   int ticks,
 ) {
+  if (mode == 'ai') {
+    // IA contre IA : clans, difficultés et styles de carte tirés de la graine.
+    final rng = Rng(seed * 7919 + 13);
+    final w = createGame(
+      defs,
+      seed: seed,
+      size: size,
+      players: players,
+      style: rng.nextInt(defs.balance.mapStyles.length),
+      setups: <PlayerSetup>[
+        for (var i = 0; i < players; i++)
+          PlayerSetup(
+            clan: rng.nextInt(defs.clans.length),
+            aiLevel: rng.nextInt(3),
+            team: players == 4 && i < 2 ? 0 : -1,
+          ),
+      ],
+      victoryMode: VictoryMode.conquest,
+    )..checkInvariantsEachTick = true;
+    for (var t = 0; t < ticks && !w.gameOver; t++) {
+      w.step();
+    }
+    // Blocage : une IA dont le chien de garde s'est déclenché plus de 3 fois.
+    final stuck = <String>[
+      for (final p in w.players)
+        if (!p.defeated && p.aiMem[6] > 3) 'IA ${p.id} bloquée (${p.aiMem[6]})',
+    ];
+    return (
+      hash: w.stateHash(),
+      violations: <String>[...w.violations, ...stuck],
+    );
+  }
   if (mode == 'economy') {
     final w = createGame(defs, seed: seed, size: size, players: players)
       ..checkInvariantsEachTick = true;

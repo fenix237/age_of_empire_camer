@@ -1,6 +1,7 @@
 import 'package:age_of_empire_camer/sim/commands/command.dart';
 import 'package:age_of_empire_camer/sim/core/fixed_point.dart';
 import 'package:age_of_empire_camer/sim/data/res.dart';
+import 'package:age_of_empire_camer/sim/systems/combat.dart';
 import 'package:age_of_empire_camer/sim/world/entities.dart';
 import 'package:age_of_empire_camer/sim/world/orders.dart';
 import 'package:age_of_empire_camer/sim/world/world.dart';
@@ -54,10 +55,12 @@ bool canGatherFrom(World w, int owner, int id) {
 bool isEnemyTarget(World w, int owner, int id) {
   final u = w.units[id];
   if (u != null) {
-    return u.alive && u.owner != owner && u.state != UnitState.garrisoned;
+    return u.alive &&
+        hostile(w, owner, u.owner) &&
+        u.state != UnitState.garrisoned;
   }
   final b = w.buildings[id];
-  return b != null && b.owner != owner;
+  return b != null && hostile(w, owner, b.owner);
 }
 
 /// Source la plus proche de même type que [resIndex] autour de la dernière

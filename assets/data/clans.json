@@ -1,0 +1,52 @@
+{
+  "clans": [
+    {
+      "id": "fleuve", "playable": true, "hero": "hero_mbarga",
+      "startBonus": {"food": 50},
+      "effects": [
+        {"stat": "attack", "class": "infantry", "percent": 10},
+        {"stat": "carry", "add": 2}
+      ],
+      "personality": {"aggression": 50, "economy": 50, "towers": 30, "siege": 30, "cavalry": 30, "raidWave": 14}
+    },
+    {
+      "id": "pecheurs", "playable": true, "hero": "hero_sanaga",
+      "startBonus": {"wood": 50},
+      "effects": [
+        {"stat": "gather", "res": "food", "percent": 20},
+        {"stat": "gather", "res": "wood", "percent": 10},
+        {"stat": "range", "class": "archer", "add": 1}
+      ],
+      "personality": {"aggression": 35, "economy": 75, "towers": 40, "siege": 15, "cavalry": 10, "raidWave": 18}
+    },
+    {
+      "id": "forgerons", "playable": true, "hero": "hero_ngolo",
+      "startBonus": {"stone": 50},
+      "effects": [
+        {"stat": "gather", "res": "iron", "percent": 15},
+        {"stat": "attack", "class": "siege", "percent": 20},
+        {"stat": "armor", "class": "building", "add": 2}
+      ],
+      "personality": {"aggression": 45, "economy": 50, "towers": 80, "siege": 80, "cavalry": 10, "raidWave": 16}
+    },
+    {
+      "id": "cavaliers", "playable": true, "hero": "hero_dikoume",
+      "startBonus": {"food": 50},
+      "effects": [
+        {"stat": "speed", "class": "cavalry", "percent": 15},
+        {"stat": "hp", "class": "cavalry", "percent": 15},
+        {"stat": "attack", "class": "cavalry", "percent": 10}
+      ],
+      "personality": {"aggression": 65, "economy": 45, "towers": 10, "siege": 15, "cavalry": 85, "raidWave": 10}
+    },
+    {
+      "id": "corbeaux", "playable": false, "hero": "hero_kaba",
+      "startBonus": {"iron": 50},
+      "effects": [
+        {"stat": "attack", "class": "military", "percent": 10},
+        {"stat": "speed", "class": "military", "percent": 5}
+      ],
+      "personality": {"aggression": 90, "economy": 40, "towers": 20, "siege": 40, "cavalry": 30, "raidWave": 8}
+    }
+  ]
+}

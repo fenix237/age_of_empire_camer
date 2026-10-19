@@ -44,6 +44,7 @@ abstract final class MapGenerator {
     required int seed,
     required int size,
     required int players,
+    int style = 0,
   }) {
     if (size < 32 || size > 256) {
       throw ArgumentError.value(size, 'size', 'entre 32 et 256');
@@ -54,12 +55,28 @@ abstract final class MapGenerator {
     final cfg = defs.balance.mapGen;
     var s = seed;
     for (var attempt = 1; attempt <= cfg.maxAttempts; attempt++) {
-      final g = _build(defs, s, size, players, attempt, bridge: false);
+      final g = _build(
+        defs,
+        s,
+        size,
+        players,
+        attempt,
+        bridge: false,
+        style: style,
+      );
       if (g != null) return g;
       s++;
     }
     // Dernier recours : ponts garantis entre les bases.
-    return _build(defs, s, size, players, cfg.maxAttempts + 1, bridge: true)!;
+    return _build(
+      defs,
+      s,
+      size,
+      players,
+      cfg.maxAttempts + 1,
+      bridge: true,
+      style: style,
+    )!;
   }
 
   // ── Bruit de valeur entier ──
@@ -98,8 +115,12 @@ abstract final class MapGenerator {
     int players,
     int attempt, {
     required bool bridge,
+    int style = 0,
   }) {
-    final cfg = defs.balance.mapGen;
+    final styles = defs.balance.mapStyles;
+    final cfg = defs.balance.mapGen.withStyle(
+      styles[style.clamp(0, styles.length - 1)],
+    );
     final rng = Rng(seed);
     final map = GameMap(size, size, defs.terrain);
     final tGrass = _terrainIndex(defs, 'grass');

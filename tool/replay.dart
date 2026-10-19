@@ -48,7 +48,30 @@ void main(List<String> args) {
     for (final n in Defs.fileNames)
       n: File('assets/data/$n.json').readAsStringSync(),
   });
-  final w = createGame(defs, seed: seed, size: size, players: players);
+  List<int> list(String key, int def) {
+    final l = (opts[key] ?? '').split(',').where((e) => e.isNotEmpty).toList();
+    return <int>[
+      for (var i = 0; i < players; i++)
+        l.isEmpty ? def : int.parse(l[i % l.length]),
+    ];
+  }
+
+  final clans = list('clans', 0);
+  final levels = list('levels', -1);
+  final w = createGame(
+    defs,
+    seed: seed,
+    size: size,
+    players: players,
+    style: int.parse(opts['style'] ?? '0'),
+    setups: opts.containsKey('clans') || opts.containsKey('levels')
+        ? <PlayerSetup>[
+            for (var i = 0; i < players; i++)
+              PlayerSetup(clan: clans[i], aiLevel: levels[i]),
+          ]
+        : null,
+    victoryMode: int.parse(opts['victory'] ?? '0'),
+  )..aiEnabled = false;
   var next = 0;
   final sw = Stopwatch()..start();
   for (var t = 0; t < ticks; t++) {

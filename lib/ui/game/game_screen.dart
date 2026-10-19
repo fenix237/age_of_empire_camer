@@ -4,7 +4,9 @@ import 'package:age_of_empire_camer/app/lifecycle/close_coordinator.dart';
 import 'package:age_of_empire_camer/app/providers.dart';
 import 'package:age_of_empire_camer/game/game_controller.dart';
 import 'package:age_of_empire_camer/game/game_loop.dart';
+import 'package:age_of_empire_camer/ui/campaign/mission_overlay.dart';
 import 'package:age_of_empire_camer/ui/game/game_view.dart';
+import 'package:age_of_empire_camer/ui/hud/combat_hud.dart';
 import 'package:age_of_empire_camer/ui/hud/hud.dart';
 import 'package:age_of_empire_camer/ui/strings.dart';
 import 'package:flutter/material.dart';
@@ -87,6 +89,14 @@ class _GameScreenState extends ConsumerState<GameScreen> implements CloseGuard {
     return ok;
   }
 
+  /// Défi du jour : on garde le meilleur temps de victoire.
+  void _recordDaily({required bool won, required int seconds}) {
+    final key = c.dailyKey;
+    if (!won || key == null) return;
+    final notifier = ref.read(progressProvider.notifier);
+    notifier.update(ref.read(progressProvider).withDaily(key, seconds));
+  }
+
   // ── Menu pause / navigation ──
 
   Future<void> _quitToMenu() async {
@@ -157,6 +167,15 @@ class _GameScreenState extends ConsumerState<GameScreen> implements CloseGuard {
             GameView(controller: c, onMenu: _openMenu),
             Hud(controller: c, onMenu: _openMenu),
             DeleteConfirmation(controller: c),
+            if (c.world.mission == null)
+              EndScreen(
+                controller: c,
+                onQuit: () => unawaited(_quitToMenu()),
+                onResult: c.dailyKey == null ? null : _recordDaily,
+              )
+            else
+              MissionEndScreen(controller: c),
+            MissionOverlay(controller: c),
             ListenableBuilder(
               listenable: c,
               builder: (context, _) {
@@ -184,6 +203,15 @@ class _GameScreenState extends ConsumerState<GameScreen> implements CloseGuard {
                     );
                   },
                   onQuit: () => unawaited(_quitToMenu()),
+                  onResign: c.spectator
+                      ? null
+                      : () async {
+                          if (!await confirmResign(context)) return;
+                          c
+                            ..resign()
+                            ..resume(PauseReason.menu)
+                            ..resume(PauseReason.lifecycle);
+                        },
                   debugOn: c.debug.any,
                   onDebug: (on) {
                     c.setDebug(enabled: on);
@@ -204,6 +232,7 @@ class _PauseMenu extends StatelessWidget {
     required this.onResume,
     required this.onSave,
     required this.onQuit,
+    required this.onResign,
     required this.debugOn,
     required this.onDebug,
   });
@@ -212,6 +241,7 @@ class _PauseMenu extends StatelessWidget {
   final VoidCallback onResume;
   final VoidCallback onSave;
   final VoidCallback onQuit;
+  final VoidCallback? onResign;
   final bool debugOn;
   final ValueChanged<bool> onDebug;
 
@@ -252,6 +282,13 @@ class _PauseMenu extends StatelessWidget {
                     value: debugOn,
                     onChanged: onDebug,
                   ),
+                  if (onResign != null) ...<Widget>[
+                    FilledButton.tonal(
+                      onPressed: onResign,
+                      child: const Text(S.resign),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   FilledButton.tonal(
                     onPressed: onQuit,
                     child: const Text(S.quitToMenu),

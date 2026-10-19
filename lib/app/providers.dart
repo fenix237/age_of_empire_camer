@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:age_of_empire_camer/app/lifecycle/close_coordinator.dart';
 import 'package:age_of_empire_camer/app/window/window_service.dart';
+import 'package:age_of_empire_camer/meta/campaign_progress.dart';
 import 'package:age_of_empire_camer/meta/save_store.dart';
+import 'package:age_of_empire_camer/sim/campaign/mission_def.dart';
 import 'package:age_of_empire_camer/sim/data/defs_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,3 +32,35 @@ final defsProvider = FutureProvider<Defs>((ref) async {
   };
   return Defs.fromFiles(files);
 });
+
+/// Campagne (missions, objectifs, dialogues) chargée depuis
+/// `assets/campaign/campaign.json`.
+final campaignProvider = FutureProvider<CampaignDef>((ref) async {
+  return CampaignDef.fromString(
+    await rootBundle.loadString('assets/campaign/campaign.json'),
+  );
+});
+
+final progressStoreProvider = Provider<ProgressStore?>((ref) {
+  final store = ref.watch(saveStoreProvider);
+  return store == null ? null : ProgressStore(store.dir);
+});
+
+/// Progression de la campagne : étoiles, déblocages, défi du jour.
+class ProgressNotifier extends StateNotifier<CampaignProgress> {
+  ProgressNotifier(this._store)
+    : super(_store?.load() ?? const CampaignProgress());
+
+  final ProgressStore? _store;
+
+  void update(CampaignProgress next) {
+    state = next;
+    final store = _store;
+    if (store != null) unawaited(store.save(next));
+  }
+}
+
+final progressProvider =
+    StateNotifierProvider<ProgressNotifier, CampaignProgress>(
+      (ref) => ProgressNotifier(ref.watch(progressStoreProvider)),
+    );

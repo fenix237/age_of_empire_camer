@@ -55,3 +55,13 @@ abstract final class Crc32 {
 String hex64(int v) =>
     '${(v >>> 32).toRadixString(16).padLeft(8, '0')}'
     '${(v & 0xFFFFFFFF).toRadixString(16).padLeft(8, '0')}';
+
+/// Hash FNV-1a 31 bits d'une chaîne : stable d'une plateforme à l'autre
+/// (contrairement à `String.hashCode`), utilisable dans le hash d'état.
+int stableStringHash(String s) {
+  var h = 0x811c9dc5;
+  for (final c in s.codeUnits) {
+    h = ((h ^ c) * 0x01000193) & 0x7fffffff;
+  }
+  return h;
+}

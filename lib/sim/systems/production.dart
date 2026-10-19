@@ -1,10 +1,13 @@
 import 'package:age_of_empire_camer/sim/commands/command.dart';
 import 'package:age_of_empire_camer/sim/core/fixed_point.dart';
+import 'package:age_of_empire_camer/sim/data/defs.dart';
 import 'package:age_of_empire_camer/sim/data/res.dart';
+import 'package:age_of_empire_camer/sim/systems/combat.dart';
 import 'package:age_of_empire_camer/sim/systems/economy.dart';
 import 'package:age_of_empire_camer/sim/systems/unit_system.dart';
 import 'package:age_of_empire_camer/sim/world/entities.dart';
 import 'package:age_of_empire_camer/sim/world/orders.dart';
+import 'package:age_of_empire_camer/sim/world/player.dart';
 import 'package:age_of_empire_camer/sim/world/world.dart';
 
 /// Case libre adjacente au bâtiment, la plus proche de (tx, ty) (ou du
@@ -47,16 +50,89 @@ CmdResult enqueueTrain(World w, int owner, int buildingId, String unitId) {
   if (!b.def.trains.contains(unitId)) return CmdResult.wrongTarget;
   final def = w.defs.unit(unitId);
   final p = w.players[owner];
-  if (def.age > p.age) return CmdResult.locked;
+  if (p.defeated) return CmdResult.nothingToDo;
+  if (def.age > p.age || p.locked.contains(def.id)) return CmdResult.locked;
+  if (def.clan.isNotEmpty &&
+      (p.clan < 0 || w.defs.clans[p.clan].id != def.clan)) {
+    return CmdResult.locked;
+  }
   if (b.queue.length >= w.balance.maxQueue) return CmdResult.queueFull;
-  if (!p.stock.covers(def.cost)) return CmdResult.cannotAfford;
-  p.stock.subtract(def.cost);
+  final cost = unitCostFor(w, p, def);
+  if (def.isHero) {
+    // Un seul héros vivant (ou en file) par joueur.
+    for (final u in w.units.values) {
+      if (u.owner == owner && u.alive && u.def.isHero) {
+        return CmdResult.nothingToDo;
+      }
+    }
+    for (final other in w.buildings.values) {
+      if (other.owner != owner) continue;
+      for (final q in other.queue) {
+        if (!q.isTech && !q.isAge && w.defs.units[q.defIndex].isHero) {
+          return CmdResult.nothingToDo;
+        }
+      }
+    }
+  }
+  if (!p.stock.covers(cost)) return CmdResult.cannotAfford;
+  p.stock.subtract(cost);
   b.queue.add(
     QueueItem(
       isTech: false,
       defIndex: def.index,
       remaining: def.trainSeconds * 10,
-      paid: def.cost.copy(),
+      paid: cost.copy(),
+    ),
+  );
+  return CmdResult.ok;
+}
+
+/// Coût d'entraînement : un héros tombé coûte plus cher à chaque mort.
+Stock unitCostFor(World w, Player p, UnitDef def) {
+  if (!def.isHero) return def.cost;
+  final deaths = p.fallenHeroes.where((i) => i == def.index).length;
+  if (deaths == 0) return def.cost;
+  final step = w.balance.combat.heroReviveCostPercent - 100;
+  final pct = 100 + (deaths > 5 ? 5 : deaths) * step;
+  return def.cost.scaled(pct, 100);
+}
+
+/// Lance la recherche du prochain âge dans un bâtiment adapté.
+CmdResult enqueueAgeUp(World w, int owner, int buildingId) {
+  final b = w.buildings[buildingId];
+  if (b == null) return CmdResult.notFound;
+  if (b.owner != owner) return CmdResult.notOwned;
+  if (!b.complete) return CmdResult.notComplete;
+  final p = w.players[owner];
+  if (p.defeated) return CmdResult.nothingToDo;
+  final next = p.age + 1;
+  if (next >= w.defs.ages.length) return CmdResult.nothingToDo;
+  final age = w.defs.ages[next];
+  if (!b.def.agesUp || !age.researchedAt.contains(b.def.id)) {
+    return CmdResult.wrongTarget;
+  }
+  if (b.queue.length >= w.balance.maxQueue) return CmdResult.queueFull;
+  for (final other in w.buildings.values) {
+    if (other.owner != owner) continue;
+    for (final q in other.queue) {
+      if (q.isAge) return CmdResult.nothingToDo;
+    }
+  }
+  for (final req in age.requiresBuildings) {
+    final has = w.buildings.values.any(
+      (x) => x.owner == owner && x.complete && x.def.id == req,
+    );
+    if (!has) return CmdResult.locked;
+  }
+  if (!p.stock.covers(age.cost)) return CmdResult.cannotAfford;
+  p.stock.subtract(age.cost);
+  b.queue.add(
+    QueueItem(
+      isTech: false,
+      isAge: true,
+      defIndex: next,
+      remaining: age.researchSeconds * 10,
+      paid: age.cost.copy(),
     ),
   );
   return CmdResult.ok;
@@ -71,7 +147,7 @@ CmdResult enqueueResearch(World w, int owner, int buildingId, String techId) {
   final def = w.defs.tech(techId);
   final p = w.players[owner];
   if (p.hasTech(def.index)) return CmdResult.nothingToDo;
-  if (def.age > p.age) return CmdResult.locked;
+  if (def.age > p.age || p.locked.contains(def.id)) return CmdResult.locked;
   if (b.queue.length >= w.balance.maxQueue) return CmdResult.queueFull;
   // Déjà en file quelque part ?
   for (final other in w.buildings.values) {
@@ -111,9 +187,17 @@ void updateProduction(World w) {
     if (item.remaining > 0) item.remaining--;
     if (item.remaining > 0) continue;
     final p = w.players[b.owner];
+    if (item.isAge) {
+      p.age = item.defIndex;
+      b.queue.removeAt(0);
+      w.events.add(GameEvent(EventType.ageAdvanced, b.owner, b.id));
+      continue;
+    }
     if (item.isTech) {
       final def = w.defs.techs[item.defIndex];
       p.addTech(def);
+      p.stats.researches++;
+      refreshUnitHp(w, b.owner);
       b.queue.removeAt(0);
       w.events.add(GameEvent(EventType.researchDone, b.owner, b.id));
       continue;
@@ -124,6 +208,7 @@ void updateProduction(World w) {
     final spot = freeSpawnTile(w, b, b.rallyX, b.rallyY);
     if (spot == null) continue;
     b.queue.removeAt(0);
+    p.stats.unitsTrained++;
     final u = w.spawnUnit(
       def,
       b.owner,

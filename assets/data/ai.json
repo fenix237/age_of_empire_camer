@@ -1,0 +1,16 @@
+{
+  "difficulties": [
+    {"id": "easy", "thinkTicks": 100, "gatherBonusPercent": 0, "attackWaveScale": 150,
+     "maxVillagers": 26, "useHero": false, "usePowers": false},
+    {"id": "normal", "thinkTicks": 50, "gatherBonusPercent": 0, "attackWaveScale": 100,
+     "maxVillagers": 42, "useHero": true, "usePowers": true},
+    {"id": "hard", "thinkTicks": 30, "gatherBonusPercent": 25, "attackWaveScale": 80,
+     "maxVillagers": 58, "useHero": true, "usePowers": true, "shownBonus": true}
+  ],
+  "watchdogSeconds": 90,
+  "shares": {"food": 40, "wood": 30, "stone": 8, "iron": 10, "gold": 12},
+  "hutMargin": 4,
+  "defenseRadius": 12,
+  "retreatRatioPercent": 45,
+  "attackMinArmy": 6
+}

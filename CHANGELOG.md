@@ -1,5 +1,32 @@
 # Journal des modifications
 
+## Phases 5 à 7 (partielles) — 2026-10-19
+
+Combat, âges, pouvoirs, héros, IA, interface de combat, menu d'escarmouche et moteur de campagne.
+
+### Ajouté
+- **Combat complet** (Phase 5) : armures, bonus de catégorie, projectiles, dégâts de zone, hauteur ; tours, forteresse, palais, rempart, écurie, atelier de siège, autel ; catapulte, changement d'âge, pouvoirs, 5 héros, sorts de bataille (jauge du tambour), victoire et défaite.
+- **IA** (Phase 6) : 3 difficultés, 5 clans, outils `tool/ai_demo.dart` et `tool/balance_sim.dart`, rejeu identique d'une partie IA contre IA.
+- **Interface de combat** : panneau des pouvoirs (Z X C V) et des sorts (F5–F8) avec recharges, jauge du tambour, bouton « Âge suivant » (prérequis et coût), bandeau de ciblage, écran de fin (résultat, statistiques par joueur), abandon avec confirmation.
+- **Rendu du combat** : flèches et boulets en arc interpolés, ondes de zone des pouvoirs, aperçu de zone au ciblage, icônes d'effets sur les unités (étourdi, ralenti, bonus, malus).
+- **Personnages animés** : squelette articulé et outils ; gestes réels déduits de la simulation (couper, cueillir, miner, cultiver, bâtir, chasser, estoc, frappe, tir), l'unité se place contre sa cible et se tourne vers elle ; charges portées (tronc, panier, sac) ; effets d'impact. Bâtiments animés (fumée, drapeaux, braises, blé).
+- **Marqueur d'ordre** : une croix posée sur la destination (plus d'anneau ni de ligne blanche de chemin).
+- **Menu d'escarmouche** : carte (taille, type, graine), clan, nombre d'IA, difficulté (bonus de l'IA Difficile affiché), victoire, ressources, vitesse, mode spectateur.
+- **Campagne** (Phase 7) : moteur de missions JSON (objectifs, déclencheurs, vagues, dialogues, aide du tutoriel, fins multiples) intégré à la simulation (état sauvegardé, haché, rejoué) ; validateur de données ; 7 missions ; carte du royaume, briefing avec 3 difficultés, dialogues, écran de fin avec étoiles et déblocages, progression locale ; défi du jour (graine de la date locale).
+
+### Corrigé
+- **IA qui s'emmurait** : ses champs et huttes pouvaient enfermer le centre-ville (20 cases atteignables), bloquant bois et récolte ; chaque pose vérifie maintenant que la zone accessible n'est pas amputée.
+
+### Qualité
+- 377 tests verts ; `flutter analyze` : un avertissement de style dans `test/sim/combat_phase5_test.dart`.
+- Les 7 missions sont validées (références, positions accessibles, ressources suffisantes) et la mission 1 est terminée de bout en bout avec de vraies commandes ; les missions 2 à 7 sont vérifiées par des scénarios scriptés (renforts, téléportation, dégâts directs), pas par une partie jouée.
+
+### Limites connues
+- **Équilibrage non terminé** : sur 30 parties croisées, 10 se terminent sans vainqueur et le taux de victoire par clan va de 15 % à 66 % (cible 45–55 %). La simulation nocturne de 5 000 parties n'a pas été lancée.
+- Navires et portes repoussés. Pas de son ; placeholders graphiques (Phase 9).
+- Missions de campagne jamais jouées par un humain ; leurs seuils (vagues, ressources, étoiles) sont des premières valeurs.
+- Une sauvegarde de mission reprend les dialogues non lus mais pas l'aide à l'écran déjà fermée.
+
 ## Phases 1 à 4 — 2026-10-18
 
 Première version jouable : une économie complète de bout en bout (récolter, construire, produire, rechercher, sauvegarder).

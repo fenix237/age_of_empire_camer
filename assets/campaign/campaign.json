@@ -1,0 +1,1817 @@
+{
+ "missions": [
+  {
+   "id": "m1",
+   "title": "Les premiers feux",
+   "subtitle": "Tutoriel",
+   "kingdom": [
+    10,
+    70
+   ],
+   "briefing": [
+    "Le royaume du Fleuve renaît de ses cendres. Mbarga, héritier du trône, doit rebâtir un village capable de nourrir et de défendre son peuple.",
+    "Cette première mission vous guide pas à pas : villageois, huttes, récolte, champs et premiers soldats."
+   ],
+   "map": {
+    "size": 64,
+    "seed": 11,
+    "style": 0
+   },
+   "players": [
+    {
+     "clan": "fleuve",
+     "ai": -1,
+     "age": 0,
+     "resources": {
+      "food": 300,
+      "wood": 300
+     },
+     "locked": {
+      "units": [
+       "archer",
+       "iron_warrior",
+       "horseman",
+       "catapult"
+      ],
+      "buildings": [
+       "tower",
+       "forge",
+       "market",
+       "wall",
+       "stable",
+       "siege_workshop"
+      ]
+     }
+    }
+   ],
+   "objectives": [
+    {
+     "id": "villagers",
+     "label": "Entraîner 3 villageois (centre-ville)",
+     "done": {
+      "kind": "units",
+      "unit": "villager",
+      "count": 7
+     }
+    },
+    {
+     "id": "hut",
+     "label": "Bâtir une hutte (population)",
+     "hidden": true,
+     "done": {
+      "kind": "build",
+      "building": "hut",
+      "count": 1
+     }
+    },
+    {
+     "id": "wood",
+     "label": "Récolter 150 de bois",
+     "hidden": true,
+     "done": {
+      "kind": "gather",
+      "res": "wood",
+      "amount": 150
+     }
+    },
+    {
+     "id": "field",
+     "label": "Aménager un champ",
+     "hidden": true,
+     "done": {
+      "kind": "build",
+      "building": "field",
+      "count": 1
+     }
+    },
+    {
+     "id": "barracks",
+     "label": "Bâtir une caserne",
+     "hidden": true,
+     "done": {
+      "kind": "build",
+      "building": "barracks",
+      "count": 1
+     }
+    },
+    {
+     "id": "spears",
+     "label": "Entraîner 3 lanciers",
+     "hidden": true,
+     "done": {
+      "kind": "units",
+      "unit": "spearman",
+      "count": 3
+     }
+    }
+   ],
+   "triggers": [
+    {
+     "id": "intro",
+     "when": {
+      "kind": "always"
+     },
+     "do": [
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mbarga",
+         "text": "Nos greniers sont vides et nos huttes en ruine. Commençons par renforcer le village."
+        },
+        {
+         "speaker": "Ancêtre",
+         "text": "Sélectionne le centre-ville, puis choisis « Villageois » dans le panneau d’actions."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Cliquez sur le centre-ville, puis sur « Villageois » (3 fois). Clic droit sur une ressource pour récolter."
+      }
+     ]
+    },
+    {
+     "id": "t_hut",
+     "when": {
+      "kind": "objective",
+      "id": "villagers"
+     },
+     "do": [
+      {
+       "kind": "objective",
+       "id": "hut"
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Ancêtre",
+         "text": "Chaque hutte loge 5 habitants. Sans hutte, plus de nouveaux villageois."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Sélectionnez un villageois, choisissez « Hutte » puis cliquez sur le sol pour la placer."
+      }
+     ]
+    },
+    {
+     "id": "t_wood",
+     "when": {
+      "kind": "objective",
+      "id": "hut"
+     },
+     "do": [
+      {
+       "kind": "objective",
+       "id": "wood"
+      },
+      {
+       "kind": "hint",
+       "text": "Sélectionnez des villageois et faites un clic droit sur un arbre : ils coupent le bois et le rapportent seuls."
+      }
+     ]
+    },
+    {
+     "id": "t_field",
+     "when": {
+      "kind": "objective",
+      "id": "wood"
+     },
+     "do": [
+      {
+       "kind": "objective",
+       "id": "field"
+      },
+      {
+       "kind": "give",
+       "resources": {
+        "wood": 200,
+        "food": 100
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Ancêtre",
+         "text": "Le gibier ne dure pas. Un champ nourrit ton peuple tant que tu le replantes."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Choisissez « Champ » avec un villageois, placez-le près du centre-ville, puis envoyez-y des villageois."
+      }
+     ]
+    },
+    {
+     "id": "t_barracks",
+     "when": {
+      "kind": "objective",
+      "id": "field"
+     },
+     "do": [
+      {
+       "kind": "objective",
+       "id": "barracks"
+      },
+      {
+       "kind": "give",
+       "resources": {
+        "wood": 250,
+        "food": 150
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mbarga",
+         "text": "Un village sans défense est une proie. Il nous faut une caserne."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Choisissez « Caserne » avec un villageois et placez-la à l’écart des champs."
+      }
+     ]
+    },
+    {
+     "id": "t_spears",
+     "when": {
+      "kind": "objective",
+      "id": "barracks"
+     },
+     "do": [
+      {
+       "kind": "objective",
+       "id": "spears"
+      },
+      {
+       "kind": "give",
+       "resources": {
+        "food": 200,
+        "wood": 100
+       }
+      },
+      {
+       "kind": "hint",
+       "text": "Sélectionnez la caserne puis entraînez 3 lanciers. Ils protégeront le village."
+      }
+     ]
+    },
+    {
+     "id": "t_end",
+     "when": {
+      "kind": "objective",
+      "id": "spears"
+     },
+     "do": [
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mbarga",
+         "text": "Le feu brille de nouveau dans nos huttes. Nous sommes prêts."
+        },
+        {
+         "speaker": "Ancêtre",
+         "text": "Les vagues d’Amougou approchent déjà… Prépare tes lanciers."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": ""
+      }
+     ]
+    }
+   ],
+   "lose": [
+    {
+     "kind": "no_buildings",
+     "owner": 0,
+     "building": "town_center"
+    }
+   ],
+   "stars": {
+    "seconds": 900,
+    "maxLosses": 0
+   },
+   "rewards": {
+    "buildings": [
+     "tower"
+    ]
+   }
+  },
+  {
+   "id": "m2",
+   "title": "La première vague",
+   "subtitle": "Défense",
+   "requires": [
+    "m1"
+   ],
+   "kingdom": [
+    24,
+    52
+   ],
+   "briefing": [
+    "Amougou, seigneur des plaines, convoite notre fleuve. Ses guerriers déferleront par vagues successives.",
+    "Résistez sept minutes : vous recevrez des renforts de l’Ancêtre."
+   ],
+   "map": {
+    "size": 64,
+    "seed": 23,
+    "style": 0
+   },
+   "players": [
+    {
+     "clan": "fleuve",
+     "ai": -1,
+     "age": 0,
+     "resources": {
+      "food": 500,
+      "wood": 600,
+      "stone": 100
+     },
+     "locked": {
+      "units": [
+       "archer",
+       "iron_warrior",
+       "horseman",
+       "catapult"
+      ],
+      "buildings": [
+       "forge",
+       "market",
+       "wall",
+       "stable",
+       "siege_workshop"
+      ]
+     }
+    },
+    {
+     "clan": "forgerons",
+     "ai": -1,
+     "base": false,
+     "age": 0
+    }
+   ],
+   "placements": [
+    {
+     "owner": 0,
+     "unit": "spearman",
+     "count": 4,
+     "at": {
+      "from": "p0",
+      "dx": 5,
+      "dy": 5
+     },
+     "tag": "guards"
+    }
+   ],
+   "objectives": [
+    {
+     "id": "survive",
+     "label": "Survivre 7 minutes",
+     "done": {
+      "kind": "tick",
+      "seconds": 420
+     }
+    },
+    {
+     "id": "kills",
+     "label": "Éliminer 25 guerriers",
+     "optional": true,
+     "done": {
+      "kind": "killed",
+      "owner": 0,
+      "count": 25
+     }
+    }
+   ],
+   "triggers": [
+    {
+     "id": "intro",
+     "when": {
+      "kind": "always"
+     },
+     "do": [
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Mbarga ! Des guerriers d’Amougou marchent sur nous. Ils viendront par vagues."
+        },
+        {
+         "speaker": "Mbarga",
+         "text": "Tenez bon. Bâtissez des casernes et gardez vos lanciers près du centre-ville."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Survivez 7 minutes. Entraînez des lanciers à la caserne et gardez-les groupés autour du centre-ville."
+      }
+     ]
+    },
+    {
+     "id": "wave1",
+     "when": {
+      "kind": "tick",
+      "seconds": 90
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 5,
+       "at": {
+        "from": "p1",
+        "dx": 0,
+        "dy": 0
+       },
+       "tag": "raiders",
+       "to": {
+        "from": "p0",
+        "dx": -3,
+        "dy": -3
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Vague 1 en approche !"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "wave2",
+     "when": {
+      "kind": "tick",
+      "seconds": 180
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 6,
+       "at": {
+        "from": "p1",
+        "dx": 0,
+        "dy": 0
+       },
+       "tag": "raiders",
+       "to": {
+        "from": "p0",
+        "dx": -3,
+        "dy": -3
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Vague 2 en approche !"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "wave3",
+     "when": {
+      "kind": "tick",
+      "seconds": 270
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 8,
+       "at": {
+        "from": "p1",
+        "dx": 0,
+        "dy": 0
+       },
+       "tag": "raiders",
+       "to": {
+        "from": "p0",
+        "dx": -3,
+        "dy": -3
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Vague 3 en approche !"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "wave4",
+     "when": {
+      "kind": "tick",
+      "seconds": 360
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 10,
+       "at": {
+        "from": "p1",
+        "dx": 0,
+        "dy": 0
+       },
+       "tag": "raiders",
+       "to": {
+        "from": "p0",
+        "dx": -3,
+        "dy": -3
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Vague 4 en approche !"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "half",
+     "when": {
+      "kind": "tick",
+      "seconds": 210
+     },
+     "do": [
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mbarga",
+         "text": "Encore trois minutes. Ne lâchez rien !"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "lose": [
+    {
+     "kind": "no_buildings",
+     "owner": 0,
+     "building": "town_center"
+    }
+   ],
+   "stars": {
+    "seconds": 460,
+    "maxLosses": 12
+   },
+   "rewards": {
+    "units": [
+     "archer"
+    ],
+    "buildings": [
+     "forge"
+    ]
+   }
+  },
+  {
+   "id": "m3",
+   "title": "Les villages du fleuve",
+   "subtitle": "Protection",
+   "requires": [
+    "m2"
+   ],
+   "kingdom": [
+    38,
+    40
+   ],
+   "briefing": [
+    "Les hameaux du fleuve, alliés de longue date, n’ont pour toute défense que quelques lances.",
+    "Envoyez vos soldats les protéger : perdre plus d’une hutte serait un désastre."
+   ],
+   "map": {
+    "size": 64,
+    "seed": 37,
+    "style": 4
+   },
+   "players": [
+    {
+     "clan": "fleuve",
+     "ai": -1,
+     "age": 1,
+     "resources": {
+      "food": 600,
+      "wood": 700,
+      "stone": 300,
+      "gold": 200
+     },
+     "locked": {
+      "units": [
+       "iron_warrior",
+       "horseman",
+       "catapult"
+      ],
+      "buildings": [
+       "market",
+       "wall",
+       "stable",
+       "siege_workshop"
+      ]
+     }
+    },
+    {
+     "clan": "corbeaux",
+     "ai": -1,
+     "base": false,
+     "team": 1
+    },
+    {
+     "clan": "pecheurs",
+     "ai": -1,
+     "base": false,
+     "team": 0
+    }
+   ],
+   "placements": [
+    {
+     "owner": 2,
+     "building": "hut",
+     "count": 2,
+     "at": {
+      "from": "p0",
+      "dx": 14,
+      "dy": -6
+     },
+     "tag": "village"
+    },
+    {
+     "owner": 2,
+     "building": "hut",
+     "count": 2,
+     "at": {
+      "from": "p0",
+      "dx": -12,
+      "dy": 10
+     },
+     "tag": "village"
+    },
+    {
+     "owner": 0,
+     "unit": "spearman",
+     "count": 6,
+     "at": {
+      "from": "p0",
+      "dx": 6,
+      "dy": 0
+     },
+     "tag": "guards"
+    }
+   ],
+   "objectives": [
+    {
+     "id": "protect",
+     "label": "Repousser les raids en gardant 3 huttes au moins",
+     "done": {
+      "kind": "flag",
+      "name": "raids_over"
+     },
+     "fail": {
+      "kind": "not",
+      "cond": {
+       "kind": "tag_alive",
+       "tag": "village",
+       "atLeast": 3
+      }
+     }
+    },
+    {
+     "id": "all",
+     "label": "Ne perdre aucune hutte",
+     "optional": true,
+     "done": {
+      "kind": "all",
+      "conds": [
+       {
+        "kind": "flag",
+        "name": "raids_over"
+       },
+       {
+        "kind": "tag_alive",
+        "tag": "village",
+        "atLeast": 4
+       }
+      ]
+     }
+    }
+   ],
+   "triggers": [
+    {
+     "id": "intro",
+     "when": {
+      "kind": "always"
+     },
+     "do": [
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mama Sanaga",
+         "text": "Deux hameaux du fleuve dépendent de vous, Mbarga. Les corbeaux les guettent."
+        },
+        {
+         "speaker": "Mbarga",
+         "text": "Aucun hameau ne tombera. Gardez au moins trois huttes debout."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Les hameaux alliés sont à protéger des pillards : au moins trois huttes sur quatre doivent survivre."
+      }
+     ]
+    },
+    {
+     "id": "raid1",
+     "when": {
+      "kind": "tick",
+      "seconds": 70
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 4,
+       "at": {
+        "from": "p1",
+        "dx": 0,
+        "dy": 0
+       },
+       "tag": "raiders",
+       "to": {
+        "from": "p0",
+        "dx": 14,
+        "dy": -6
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Des pillards approchent d’un hameau ! (raid 1)"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "raid2",
+     "when": {
+      "kind": "tick",
+      "seconds": 150
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 5,
+       "at": {
+        "from": "p1",
+        "dx": 0,
+        "dy": 0
+       },
+       "tag": "raiders",
+       "to": {
+        "from": "p0",
+        "dx": -12,
+        "dy": 10
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Des pillards approchent d’un hameau ! (raid 2)"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "raid3",
+     "when": {
+      "kind": "tick",
+      "seconds": 230
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "iron_warrior",
+       "count": 6,
+       "at": {
+        "from": "p1",
+        "dx": 0,
+        "dy": 0
+       },
+       "tag": "raiders",
+       "to": {
+        "from": "p0",
+        "dx": 14,
+        "dy": -6
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Des pillards approchent d’un hameau ! (raid 3)"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "over",
+     "when": {
+      "kind": "all",
+      "conds": [
+       {
+        "kind": "tick",
+        "seconds": 300
+       },
+       {
+        "kind": "no_units",
+        "owner": 1,
+        "tag": "raiders"
+       }
+      ]
+     },
+     "do": [
+      {
+       "kind": "flag",
+       "name": "raids_over"
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mama Sanaga",
+         "text": "Les corbeaux se retirent. Le fleuve respire."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "lose": [
+    {
+     "kind": "no_buildings",
+     "owner": 0,
+     "building": "town_center"
+    }
+   ],
+   "stars": {
+    "seconds": 420,
+    "maxLosses": 10
+   },
+   "rewards": {
+    "buildings": [
+     "market",
+     "wall"
+    ]
+   }
+  },
+  {
+   "id": "m4",
+   "title": "Les mines d’Ékom",
+   "subtitle": "Économie et embuscade",
+   "requires": [
+    "m3"
+   ],
+   "kingdom": [
+    52,
+    58
+   ],
+   "briefing": [
+    "Pour forger des armes, le royaume a besoin de fer et d’or. Les mines d’Ékom sont riches mais les routes ne sont pas sûres.",
+    "Bâtissez un camp minier, extrayez le métal… et méfiez-vous des embuscades."
+   ],
+   "map": {
+    "size": 80,
+    "seed": 41,
+    "style": 3
+   },
+   "players": [
+    {
+     "clan": "fleuve",
+     "ai": -1,
+     "age": 1,
+     "resources": {
+      "food": 500,
+      "wood": 600,
+      "stone": 200
+     },
+     "locked": {
+      "units": [
+       "iron_warrior",
+       "horseman",
+       "catapult"
+      ],
+      "buildings": [
+       "stable",
+       "siege_workshop"
+      ]
+     }
+    },
+    {
+     "clan": "corbeaux",
+     "ai": -1,
+     "base": false,
+     "team": 1
+    }
+   ],
+   "placements": [
+    {
+     "owner": 0,
+     "unit": "spearman",
+     "count": 5,
+     "at": {
+      "from": "p0",
+      "dx": 5,
+      "dy": 4
+     },
+     "tag": "guards"
+    }
+   ],
+   "objectives": [
+    {
+     "id": "camp",
+     "label": "Bâtir un camp minier",
+     "done": {
+      "kind": "build",
+      "building": "mining_camp",
+      "count": 1
+     }
+    },
+    {
+     "id": "iron",
+     "label": "Extraire 300 de fer",
+     "done": {
+      "kind": "gather",
+      "res": "iron",
+      "amount": 300
+     }
+    },
+    {
+     "id": "gold",
+     "label": "Extraire 200 d’or",
+     "done": {
+      "kind": "gather",
+      "res": "gold",
+      "amount": 200
+     }
+    },
+    {
+     "id": "ambush",
+     "label": "Repousser l’embuscade",
+     "hidden": true,
+     "done": {
+      "kind": "no_units",
+      "owner": 1,
+      "tag": "ambush"
+     }
+    }
+   ],
+   "triggers": [
+    {
+     "id": "intro",
+     "when": {
+      "kind": "always"
+     },
+     "do": [
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mbarga",
+         "text": "Le fer d’Ékom fera nos lames. Que les mineurs se mettent au travail."
+        },
+        {
+         "speaker": "Éclaireur",
+         "text": "Des traces de pillards sont visibles près des galeries…"
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Construisez un camp minier près d’une mine, puis envoyez-y des villageois."
+      }
+     ]
+    },
+    {
+     "id": "ambush",
+     "when": {
+      "kind": "gather",
+      "res": "iron",
+      "amount": 120
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 5,
+       "at": {
+        "from": "p0",
+        "dx": 12,
+        "dy": 12
+       },
+       "tag": "ambush",
+       "to": {
+        "from": "p0",
+        "dx": 2,
+        "dy": 2
+       }
+      },
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 3,
+       "at": {
+        "from": "p0",
+        "dx": -12,
+        "dy": 12
+       },
+       "tag": "ambush",
+       "to": {
+        "from": "p0",
+        "dx": 2,
+        "dy": 2
+       }
+      },
+      {
+       "kind": "objective",
+       "id": "ambush"
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Une embuscade ! Ils sortent des galeries !"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "lose": [
+    {
+     "kind": "no_buildings",
+     "owner": 0,
+     "building": "town_center"
+    }
+   ],
+   "stars": {
+    "seconds": 780,
+    "maxLosses": 6
+   },
+   "rewards": {
+    "units": [
+     "iron_warrior"
+    ]
+   }
+  },
+  {
+   "id": "m5",
+   "title": "La caravane du marché",
+   "subtitle": "Escorte",
+   "requires": [
+    "m4"
+   ],
+   "kingdom": [
+    66,
+    40
+   ],
+   "briefing": [
+    "Une caravane chargée de sel doit rejoindre le comptoir de l’autre côté de la plaine.",
+    "Escortez-la : les bandits du corbeau savent qu’elle passe."
+   ],
+   "map": {
+    "size": 80,
+    "seed": 53,
+    "style": 2
+   },
+   "players": [
+    {
+     "clan": "fleuve",
+     "ai": -1,
+     "age": 1,
+     "resources": {
+      "food": 500,
+      "wood": 500,
+      "iron": 150,
+      "gold": 100
+     },
+     "locked": {
+      "units": [
+       "horseman",
+       "catapult"
+      ],
+      "buildings": [
+       "stable",
+       "siege_workshop"
+      ]
+     }
+    },
+    {
+     "clan": "corbeaux",
+     "ai": -1,
+     "base": false,
+     "team": 1
+    }
+   ],
+   "placements": [
+    {
+     "owner": 0,
+     "unit": "villager",
+     "count": 1,
+     "at": {
+      "from": "p0",
+      "dx": 5,
+      "dy": 5
+     },
+     "tag": "caravan"
+    },
+    {
+     "owner": 0,
+     "unit": "spearman",
+     "count": 4,
+     "at": {
+      "from": "p0",
+      "dx": 6,
+      "dy": 5
+     },
+     "tag": "escort"
+    },
+    {
+     "owner": 0,
+     "unit": "spearman",
+     "count": 3,
+     "at": {
+      "from": "p0",
+      "dx": 5,
+      "dy": 7
+     },
+     "tag": "escort"
+    }
+   ],
+   "objectives": [
+    {
+     "id": "arrive",
+     "label": "Mener la caravane au comptoir",
+     "done": {
+      "kind": "unit_in_area",
+      "owner": 0,
+      "tag": "caravan",
+      "at": {
+       "from": "p1",
+       "dx": 4,
+       "dy": 4
+      },
+      "radius": 6
+     },
+     "fail": {
+      "kind": "not",
+      "cond": {
+       "kind": "tag_alive",
+       "tag": "caravan",
+       "atLeast": 1
+      }
+     }
+    },
+    {
+     "id": "bandits",
+     "label": "Éliminer 8 bandits",
+     "optional": true,
+     "done": {
+      "kind": "killed",
+      "owner": 0,
+      "count": 8
+     }
+    }
+   ],
+   "triggers": [
+    {
+     "id": "intro",
+     "when": {
+      "kind": "always"
+     },
+     "do": [
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mama Sanaga",
+         "text": "La caravane est lente et fragile. Gardez-la au milieu de vos lances."
+        },
+        {
+         "speaker": "Mbarga",
+         "text": "Elle ne s’arrêtera pas avant le comptoir."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Sélectionnez la caravane (villageois), clic droit à destination, escorte groupée autour d’elle."
+      }
+     ]
+    },
+    {
+     "id": "ambush1",
+     "when": {
+      "kind": "unit_in_area",
+      "owner": 0,
+      "tag": "caravan",
+      "at": {
+       "from": "center",
+       "dx": 0,
+       "dy": 0
+      },
+      "radius": 14
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 5,
+       "at": {
+        "from": "center",
+        "dx": -10,
+        "dy": 6
+       },
+       "tag": "bandits",
+       "to": {
+        "from": "center",
+        "dx": 0,
+        "dy": 0
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Des bandits au milieu de la plaine !"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ambush2",
+     "when": {
+      "kind": "unit_in_area",
+      "owner": 0,
+      "tag": "caravan",
+      "at": {
+       "from": "p1",
+       "dx": 0,
+       "dy": 0
+      },
+      "radius": 22
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "archer",
+       "count": 4,
+       "at": {
+        "from": "p1",
+        "dx": 8,
+        "dy": -4
+       },
+       "tag": "bandits",
+       "to": {
+        "from": "p1",
+        "dx": 4,
+        "dy": 4
+       }
+      },
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "spearman",
+       "count": 4,
+       "at": {
+        "from": "p1",
+        "dx": -6,
+        "dy": 6
+       },
+       "tag": "bandits",
+       "to": {
+        "from": "p1",
+        "dx": 4,
+        "dy": 4
+       }
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Éclaireur",
+         "text": "Le comptoir est en vue, mais des archers nous attendent !"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "lose": [
+    {
+     "kind": "no_buildings",
+     "owner": 0,
+     "building": "town_center"
+    }
+   ],
+   "stars": {
+    "seconds": 600,
+    "maxLosses": 3
+   },
+   "rewards": {
+    "units": [
+     "horseman"
+    ],
+    "buildings": [
+     "stable"
+    ]
+   }
+  },
+  {
+   "id": "m6",
+   "title": "Le duel des armées",
+   "subtitle": "Bataille",
+   "requires": [
+    "m5"
+   ],
+   "kingdom": [
+    80,
+    52
+   ],
+   "briefing": [
+    "Le seigneur Amougou a rassemblé son armée et marche sur le fleuve. L’heure du duel est venue.",
+    "Deux armées, deux villages : brisez la sienne avant qu’elle ne brise la vôtre."
+   ],
+   "map": {
+    "size": 80,
+    "seed": 61,
+    "style": 1
+   },
+   "players": [
+    {
+     "clan": "fleuve",
+     "ai": -1,
+     "age": 2,
+     "resources": {
+      "food": 800,
+      "wood": 800,
+      "stone": 300,
+      "iron": 400,
+      "gold": 300
+     },
+     "locked": {
+      "units": [
+       "catapult"
+      ],
+      "buildings": [
+       "siege_workshop"
+      ]
+     }
+    },
+    {
+     "clan": "forgerons",
+     "ai": 1,
+     "age": 2,
+     "team": 1,
+     "resources": {
+      "food": 600,
+      "wood": 600,
+      "stone": 200,
+      "iron": 300,
+      "gold": 100
+     }
+    }
+   ],
+   "placements": [
+    {
+     "owner": 0,
+     "unit": "spearman",
+     "count": 8,
+     "at": {
+      "from": "p0",
+      "dx": 6,
+      "dy": 6
+     },
+     "tag": "mine"
+    },
+    {
+     "owner": 0,
+     "unit": "archer",
+     "count": 6,
+     "at": {
+      "from": "p0",
+      "dx": 4,
+      "dy": 8
+     },
+     "tag": "mine"
+    },
+    {
+     "owner": 0,
+     "unit": "iron_warrior",
+     "count": 4,
+     "at": {
+      "from": "p0",
+      "dx": 8,
+      "dy": 4
+     },
+     "tag": "mine"
+    },
+    {
+     "owner": 1,
+     "unit": "iron_warrior",
+     "count": 8,
+     "at": {
+      "from": "p1",
+      "dx": -6,
+      "dy": -6
+     },
+     "tag": "enemy_army"
+    },
+    {
+     "owner": 1,
+     "unit": "spearman",
+     "count": 6,
+     "at": {
+      "from": "p1",
+      "dx": -4,
+      "dy": -8
+     },
+     "tag": "enemy_army"
+    }
+   ],
+   "objectives": [
+    {
+     "id": "army",
+     "label": "Anéantir l’armée de départ ennemie",
+     "done": {
+      "kind": "no_units",
+      "owner": 1,
+      "tag": "enemy_army"
+     }
+    },
+    {
+     "id": "tc",
+     "label": "Détruire le centre-ville d’Amougou",
+     "done": {
+      "kind": "no_buildings",
+      "owner": 1,
+      "building": "town_center"
+     }
+    }
+   ],
+   "triggers": [
+    {
+     "id": "intro",
+     "when": {
+      "kind": "always"
+     },
+     "do": [
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mbarga",
+         "text": "Voici l’armée d’Amougou. Ne la laissez pas se regrouper."
+        },
+        {
+         "speaker": "Éclaireur",
+         "text": "Il reconstruit déjà des casernes. Il faut frapper vite."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Regroupez vos troupes (glisser pour sélectionner), utilisez les pouvoirs (Z X C V) et le tambour (F5–F8)."
+      }
+     ]
+    }
+   ],
+   "lose": [
+    {
+     "kind": "no_buildings",
+     "owner": 0,
+     "building": "town_center"
+    }
+   ],
+   "stars": {
+    "seconds": 1200,
+    "maxLosses": 14
+   },
+   "rewards": {
+    "units": [
+     "catapult"
+    ],
+    "buildings": [
+     "siege_workshop"
+    ]
+   }
+  },
+  {
+   "id": "m7",
+   "title": "Le siège de Mbeng",
+   "subtitle": "Siège et boss",
+   "requires": [
+    "m6"
+   ],
+   "kingdom": [
+    92,
+    34
+   ],
+   "briefing": [
+    "Kaba le Corbeau s’est retranché dans la forteresse de Mbeng, entouré de tours et de ses fidèles.",
+    "Les catapultes du fleuve brisent les murs ; Kaba, lui, ne tombera qu’au prix du sang."
+   ],
+   "map": {
+    "size": 96,
+    "seed": 71,
+    "style": 3
+   },
+   "players": [
+    {
+     "clan": "fleuve",
+     "ai": -1,
+     "age": 2,
+     "resources": {
+      "food": 1500,
+      "wood": 1500,
+      "stone": 800,
+      "iron": 1000,
+      "gold": 600
+     }
+    },
+    {
+     "clan": "corbeaux",
+     "ai": 1,
+     "age": 2,
+     "team": 1,
+     "resources": {
+      "food": 600,
+      "wood": 600,
+      "stone": 600,
+      "iron": 300,
+      "gold": 200
+     }
+    },
+    {
+     "clan": "pecheurs",
+     "ai": -1,
+     "base": false,
+     "team": 0
+    }
+   ],
+   "placements": [
+    {
+     "owner": 0,
+     "unit": "spearman",
+     "count": 8,
+     "at": {
+      "from": "p0",
+      "dx": 6,
+      "dy": 6
+     },
+     "tag": "mine"
+    },
+    {
+     "owner": 0,
+     "unit": "archer",
+     "count": 6,
+     "at": {
+      "from": "p0",
+      "dx": 4,
+      "dy": 8
+     },
+     "tag": "mine"
+    },
+    {
+     "owner": 0,
+     "unit": "catapult",
+     "count": 3,
+     "at": {
+      "from": "p0",
+      "dx": 8,
+      "dy": 3
+     },
+     "tag": "mine"
+    },
+    {
+     "owner": 1,
+     "building": "fortress",
+     "at": {
+      "from": "p1",
+      "dx": -8,
+      "dy": -8
+     },
+     "tag": "fortress"
+    },
+    {
+     "owner": 1,
+     "building": "tower",
+     "count": 3,
+     "at": {
+      "from": "p1",
+      "dx": -14,
+      "dy": -4
+     },
+     "tag": "towers"
+    },
+    {
+     "owner": 1,
+     "unit": "iron_warrior",
+     "count": 6,
+     "at": {
+      "from": "p1",
+      "dx": -6,
+      "dy": -10
+     },
+     "tag": "guards"
+    },
+    {
+     "owner": 2,
+     "building": "hut",
+     "at": {
+      "from": "p0",
+      "dx": 10,
+      "dy": -12
+     },
+     "tag": "elder"
+    }
+   ],
+   "objectives": [
+    {
+     "id": "fortress",
+     "label": "Détruire la forteresse de Mbeng",
+     "done": {
+      "kind": "no_buildings",
+      "owner": 1,
+      "building": "fortress"
+     }
+    },
+    {
+     "id": "boss",
+     "label": "Vaincre Kaba le Corbeau",
+     "hidden": true,
+     "done": {
+      "kind": "no_units",
+      "owner": 1,
+      "tag": "boss"
+     }
+    },
+    {
+     "id": "towers",
+     "label": "Abattre les trois tours",
+     "optional": true,
+     "done": {
+      "kind": "no_buildings",
+      "owner": 1,
+      "building": "tower"
+     }
+    }
+   ],
+   "triggers": [
+    {
+     "id": "intro",
+     "when": {
+      "kind": "always"
+     },
+     "do": [
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Mbarga",
+         "text": "Mbeng. Les murs sont hauts, mais les nôtres sont plus têtus."
+        },
+        {
+         "speaker": "Mama Sanaga",
+         "text": "Les catapultes d’abord, Mbarga. Les lances ensuite."
+        }
+       ]
+      },
+      {
+       "kind": "hint",
+       "text": "Les catapultes (Atelier de siège) détruisent les bâtiments. Gardez-les protégées par vos lanciers."
+      }
+     ]
+    },
+    {
+     "id": "boss",
+     "when": {
+      "kind": "tick",
+      "seconds": 300
+     },
+     "do": [
+      {
+       "kind": "spawn",
+       "owner": 1,
+       "unit": "hero_kaba",
+       "count": 1,
+       "at": {
+        "from": "p1",
+        "dx": -8,
+        "dy": -6
+       },
+       "tag": "boss",
+       "scale": false
+      },
+      {
+       "kind": "objective",
+       "id": "boss"
+      },
+      {
+       "kind": "dialog",
+       "lines": [
+        {
+         "speaker": "Kaba",
+         "text": "Vous osez frapper à ma porte ? Les corbeaux se nourriront de votre fleuve !"
+        },
+        {
+         "speaker": "Mbarga",
+         "text": "Qu’il vienne. Aujourd’hui, le Corbeau chute."
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "lose": [
+    {
+     "kind": "no_buildings",
+     "owner": 0,
+     "building": "town_center"
+    }
+   ],
+   "endings": [
+    {
+     "id": "glorious",
+     "when": {
+      "kind": "objective",
+      "id": "towers"
+     },
+     "text": "Les tours de Mbeng en ruine, le doyen est sauvé et le royaume entier acclame Mbarga : l’ère du Fleuve commence."
+    },
+    {
+     "id": "bitter",
+     "text": "Kaba est tombé, mais Mbeng brûle encore. Le royaume est sauvé, au prix de lourds sacrifices."
+    }
+   ],
+   "stars": {
+    "seconds": 1500,
+    "maxLosses": 20
+   },
+   "rewards": {}
+  }
+ ]
+}

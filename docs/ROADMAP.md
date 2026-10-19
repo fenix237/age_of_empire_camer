@@ -165,20 +165,20 @@ Tâches
 **Objectif** : la profondeur du jeu.
 
 Tâches
-- [ ] Combat : mêlée, distance, projectiles, armure, bonus par catégorie, acquisition de cibles, poursuite, abandon.
-- [ ] Vision, élévation, bonus de hauteur.
-- [ ] Bâtiments militaires : caserne, écurie, forge, chantier naval, tours, remparts, portes, forteresse.
-- [ ] Siège : catapultes, dégâts aux bâtiments, effondrement.
-- [ ] Garnison (tour, bâtiment), évacuation.
+- [x] Combat : mêlée, distance, projectiles, armure, bonus par catégorie, acquisition de cibles, poursuite, abandon.
+- [x] Vision, élévation, bonus de hauteur.
+- [x] Bâtiments militaires : caserne, écurie, forge, chantier naval, tours, remparts, portes, forteresse. *(chantier naval et portes repoussés)*
+- [x] Siège : catapultes, dégâts aux bâtiments, effondrement.
+- [x] Garnison (tour, bâtiment), évacuation.
 - [ ] Navires et combat naval, débarquement, eau peu profonde.
-- [ ] **Âges** : Palais, recherche de changement d'âge, déblocages, bonus.
-- [ ] **Pouvoirs d'unités** (système d'effets : étourdissement, ralentissement, zone, buffs, auras) avec règles anti-cumul.
-- [ ] **Héros** (4 + Kaba), autel, résurrection, ultimes.
-- [ ] **Sorts de bataille** et jauge « tambour ».
-- [ ] Effets visuels et sonores minimaux (indicateurs de portée, zones, cooldown).
-- [ ] Tableau de test d'équilibre initial (`tool/balance_sim` prototype).
-- [ ] Conditions de victoire / défaite et écran de fin.
-- [ ] Tests : double mort simultanée, projectile sur cible morte, friendly fire, plafonds d'effets.
+- [x] **Âges** : Palais, recherche de changement d'âge, déblocages, bonus.
+- [x] **Pouvoirs d'unités** (système d'effets : étourdissement, ralentissement, zone, buffs, auras) avec règles anti-cumul.
+- [x] **Héros** (4 + Kaba), autel, résurrection, ultimes.
+- [x] **Sorts de bataille** et jauge « tambour ».
+- [x] Effets visuels et sonores minimaux (indicateurs de portée, zones, cooldown). *(visuels faits, aucun son avant la Phase 9)*
+- [x] Tableau de test d'équilibre initial (`tool/balance_sim` prototype).
+- [x] Conditions de victoire / défaite et écran de fin.
+- [x] Tests : double mort simultanée, projectile sur cible morte, friendly fire, plafonds d'effets.
 
 **Porte de sortie**
 - Toutes les unités et tous les pouvoirs déclarés dans la donnée sont couverts par au moins un test.
@@ -191,15 +191,15 @@ Tâches
 **Objectif** : une partie complète en solo contre l'ordinateur.
 
 Tâches
-- [ ] Architecture IA (stratège, économie, militaire, tactique) utilisant les mêmes commandes que le joueur.
-- [ ] Priorités du scénario + composition d'armée adaptative + usage des pouvoirs et du héros.
-- [ ] Personnalités par clan.
-- [ ] 3 niveaux de difficulté (bonus Difficile affiché à l'écran).
-- [ ] Chien de garde anti-blocage de l'IA.
-- [ ] Menu escarmouche : carte (taille/type/graine), clan, nombre d'IA, difficulté, conditions de victoire, ressources de départ, vitesse.
-- [ ] 4 clans jouables avec unités et bonus de civilisation uniques.
-- [ ] Mode spectateur IA contre IA (outil de test et de démonstration).
-- [ ] Statistiques de fin de partie.
+- [x] Architecture IA (stratège, économie, militaire, tactique) utilisant les mêmes commandes que le joueur.
+- [x] Priorités du scénario + composition d'armée adaptative + usage des pouvoirs et du héros.
+- [x] Personnalités par clan.
+- [x] 3 niveaux de difficulté (bonus Difficile affiché à l'écran).
+- [x] Chien de garde anti-blocage de l'IA.
+- [x] Menu escarmouche : carte (taille/type/graine), clan, nombre d'IA, difficulté, conditions de victoire, ressources de départ, vitesse.
+- [x] 4 clans jouables avec unités et bonus de civilisation uniques.
+- [x] Mode spectateur IA contre IA (outil de test et de démonstration).
+- [x] Statistiques de fin de partie.
 - [ ] **Simulation de masse nocturne** : IA contre IA, tous clans/cartes.
 - [ ] Première passe d'équilibrage à partir des statistiques.
 
@@ -214,16 +214,16 @@ Tâches
 **Objectif** : le scénario complet.
 
 Tâches
-- [ ] Moteur de missions JSON : objectifs, déclencheurs, vagues, dialogues, états d'objectifs, scripts d'événements.
-- [ ] Validateur de missions en CI (références, accessibilité, ressources suffisantes).
-- [ ] Interface de dialogue, portraits, écran de briefing et de fin, carte du royaume pour la progression.
-- [ ] Mission 1 (tutoriel interactif avec invites contextuelles), puis 2 à 7 dans l'ordre.
-- [ ] Contenu spécifique : vagues (M2), villages à protéger (M3), mines et embuscade (M4), caravane et escorte (M5), duel d'armées (M6), siège et boss (M7).
-- [ ] Récompenses entre missions (déblocage d'unités et de bâtiments), fins multiples.
-- [ ] Sauvegarde en cours de mission, reprise, rejouabilité, étoiles de performance.
-- [ ] Trois difficultés par mission.
-- [ ] Défi quotidien (carte fixée par graine de date locale) — version simple.
-- [ ] Tests de campagne automatisés : un « bot » termine chaque mission à partir d'un script de commandes (test de bout en bout).
+- [x] Moteur de missions JSON : objectifs, déclencheurs, vagues, dialogues, états d'objectifs, scripts d'événements.
+- [x] Validateur de missions en CI (références, accessibilité, ressources suffisantes).
+- [x] Interface de dialogue, portraits, écran de briefing et de fin, carte du royaume pour la progression. *(pas de portraits dessinés : initiale du personnage)*
+- [x] Mission 1 (tutoriel interactif avec invites contextuelles), puis 2 à 7 dans l'ordre.
+- [x] Contenu spécifique : vagues (M2), villages à protéger (M3), mines et embuscade (M4), caravane et escorte (M5), duel d'armées (M6), siège et boss (M7).
+- [x] Récompenses entre missions (déblocage d'unités et de bâtiments), fins multiples.
+- [x] Sauvegarde en cours de mission, reprise, rejouabilité, étoiles de performance.
+- [x] Trois difficultés par mission.
+- [x] Défi quotidien (carte fixée par graine de date locale) — version simple.
+- [x] Tests de campagne automatisés : un « bot » termine chaque mission à partir d'un script de commandes (test de bout en bout). *(scénarios scriptés ; seule la mission 1 est jouée de bout en bout)*
 
 **Porte de sortie**
 - Les 7 missions terminables par le bot scripté et par un testeur humain, chacune testée sur 3 sessions humaines.

@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:age_of_empire_camer/sim/core/fixed_point.dart';
+import 'package:age_of_empire_camer/sim/data/defs.dart';
 import 'package:age_of_empire_camer/sim/data/res.dart';
 import 'package:age_of_empire_camer/sim/pathfinding/astar.dart';
 import 'package:age_of_empire_camer/sim/pathfinding/flow_field.dart';
+import 'package:age_of_empire_camer/sim/systems/combat.dart';
 import 'package:age_of_empire_camer/sim/systems/construction.dart';
 import 'package:age_of_empire_camer/sim/systems/economy.dart';
 import 'package:age_of_empire_camer/sim/systems/production.dart';
@@ -33,6 +35,7 @@ void issueOrder(
     if (u.orders.length < 32) u.orders.add(o);
     return;
   }
+  u.leashed = false;
   u.orders
     ..clear()
     ..add(o);
@@ -232,6 +235,11 @@ void updateUnit(World w, Unit u) {
     return;
   }
   if (u.cooldown > 0) u.cooldown--;
+  for (var i = 0; i < u.powerCd.length; i++) {
+    if (u.powerCd[i] > 0) u.powerCd[i]--;
+  }
+  if (u.effects.isNotEmpty && !tickEffects(w, u)) return;
+  if (isStunned(u)) return;
 
   switch (u.state) {
     case UnitState.idle:
@@ -286,6 +294,7 @@ int _speedOf(World w, Unit u) {
     u.tileY.clamp(0, w.map.height - 1),
   );
   s = s * w.map.speedPercent(idx) ~/ 100;
+  s = s * speedPercentOf(w, u) ~/ 100;
   if (u.speedCap > 0 && s > u.speedCap) s = u.speedCap;
   return s < 1 ? 1 : s;
 }
@@ -405,6 +414,7 @@ void _validatePath(World w, Unit u) {
 
 /// Avance selon le chemin courant ou le flow field ; demande un chemin si besoin.
 Approach _travel(World w, Unit u) {
+  if (isRooted(u)) return Approach.waiting;
   final speed = _speedOf(w, u);
   if (u.flowId >= 0) {
     final flow = w.flows[u.flowId];
@@ -583,12 +593,20 @@ void _updateIdle(World w, Unit u) {
       }
     case Stance.aggressive:
     case Stance.defensive:
-      if ((w.tick + u.id) % 5 != 0) return;
+      if ((w.tick + u.id) % w.balance.combat.acquirePeriod != 0) return;
       final radius = u.stance == Stance.aggressive
           ? u.def.vision
           : math.max(2, u.def.range) + 1;
       final t = _findEnemy(w, u, radius);
-      if (t >= 0) issueOrder(w, u, Order.attack(t), queue: false);
+      if (t >= 0) {
+        final hx = u.tileX;
+        final hy = u.tileY;
+        issueOrder(w, u, Order.attack(t), queue: false);
+        u
+          ..homeX = hx
+          ..homeY = hy
+          ..leashed = true;
+      }
   }
 }
 
@@ -614,13 +632,15 @@ int _findEnemy(World w, Unit u, int radius) {
         final o = w.units[sp.items[k]];
         if (o == null ||
             !o.alive ||
-            o.owner == u.owner ||
+            !hostile(w, u.owner, o.owner) ||
             o.state == UnitState.garrisoned) {
           continue;
         }
         final dx = o.x - u.x;
         final dy = o.y - u.y;
-        final d = dx * dx + dy * dy;
+        // Les combattants priment sur les civils à portée comparable.
+        final d =
+            dx * dx + dy * dy + (o.def.military ? 0 : 9 * Fx.one * Fx.one);
         if (d < bestD || (d == bestD && o.id < best)) {
           bestD = d;
           best = o.id;
@@ -630,7 +650,7 @@ int _findEnemy(World w, Unit u, int radius) {
   }
   if (best >= 0) return best;
   for (final b in w.buildings.values) {
-    if (b.owner == u.owner) continue;
+    if (!hostile(w, u.owner, b.owner) || b.def.isWall) continue;
     final d = World.distToRect(u.x, u.y, b.tx, b.ty, b.def.width, b.def.height);
     if (d <= radius * Fx.one && d < bestD) {
       bestD = d;
@@ -759,7 +779,10 @@ void _updateGather(World w, Unit u) {
         return;
       }
       final cap = p.carryCapacity(u.def);
-      u.gatherProgress += p.gatherPerTick(u.def, src.res);
+      u.gatherProgress +=
+          p.gatherPerTick(u.def, src.res) *
+          (100 + gatherEffectPercent(u)) ~/
+          100;
       var left = src.amount;
       while (u.gatherProgress >= 1000 && u.carryAmt < cap && left > 0) {
         u.gatherProgress -= 1000;
@@ -809,6 +832,7 @@ void _updateReturn(World w, Unit u) {
   );
   if (r == Approach.arrived) {
     w.players[u.owner].stock[res] += u.carryAmt;
+    w.players[u.owner].stats.gathered[res.index] += u.carryAmt;
     u.carryAmt = 0;
     u.carryRes = -1;
     u.phase = Phase.approach;
@@ -932,10 +956,22 @@ void completeOrderAfterBuild(World w, Unit u, Building? b) {
   beginOrder(w, u);
 }
 
-// ── Combat de base (Phase 3 ; combat complet en Phase 5) ──
+// ── Combat ──
 
-int _attackReachFx(Unit u) =>
-    u.def.range == 0 ? interactReachFx : u.def.range * Fx.one + 64;
+int _attackReachFx(World w, Unit u, int tx, int ty) {
+  if (u.def.range == 0) return interactReachFx;
+  var tiles = rangeTilesOf(w, u);
+  if (higherGround(w, u.tileX, u.tileY, tx, ty)) tiles++;
+  return tiles * Fx.one + 64;
+}
+
+/// Abandon d'une poursuite lancée automatiquement quand la cible entraîne
+/// l'unité trop loin de son point de départ.
+bool _leashBroken(World w, Unit u) {
+  if (!u.leashed) return false;
+  final lim = w.balance.combat.leashTiles;
+  return (u.tileX - u.homeX).abs() > lim || (u.tileY - u.homeY).abs() > lim;
+}
 
 void _updateAttack(World w, Unit u) {
   final o = u.order;
@@ -945,22 +981,30 @@ void _updateAttack(World w, Unit u) {
   }
   final tu = w.units[o.a];
   final tb = w.buildings[o.a];
-  if ((tu == null ||
-          !tu.alive ||
-          tu.owner == u.owner ||
-          tu.state == UnitState.garrisoned) &&
-      (tb == null || tb.owner == u.owner)) {
+  final unitOk =
+      tu != null &&
+      tu.alive &&
+      hostile(w, u.owner, tu.owner) &&
+      tu.state != UnitState.garrisoned;
+  final buildingOk = tb != null && hostile(w, u.owner, tb.owner);
+  if (!unitOk && !buildingOk) {
     completeOrder(w, u);
     return;
   }
-  final rect = tu != null
+  if (_leashBroken(w, u)) {
+    final hx = u.homeX;
+    final hy = u.homeY;
+    issueOrder(w, u, Order.move(hx, hy), queue: false);
+    return;
+  }
+  final rect = unitOk
       ? <int>[tu.tileX, tu.tileY, 1, 1]
       : <int>[tb!.tx, tb.ty, tb.def.width, tb.def.height];
-  final reachFx = _attackReachFx(u);
+  final reachFx = _attackReachFx(w, u, rect[0], rect[1]);
   final dist = World.distToRect(u.x, u.y, rect[0], rect[1], rect[2], rect[3]);
   if (dist > reachFx) {
     // Cible mobile : recalcul périodique du chemin quand elle s'est éloignée.
-    if (tu != null && u.path.isNotEmpty && (w.tick + u.id) % 10 == 0) {
+    if (unitOk && u.path.isNotEmpty && (w.tick + u.id) % 10 == 0) {
       final end = u.path.last;
       if ((end % w.map.width - rect[0]).abs() > 2 ||
           (end ~/ w.map.width - rect[1]).abs() > 2) {
@@ -968,30 +1012,52 @@ void _updateAttack(World w, Unit u) {
       }
     }
     final r = _approach(w, u, rect, reachFx);
-    if (r == Approach.failed) completeOrder(w, u);
+    if (r == Approach.failed) {
+      // Cible inaccessible (mur, enclave) : abandon, sauf bâtiment à frapper
+      // depuis une case adjacente.
+      completeOrder(w, u);
+    }
     return;
   }
   u.clearPath();
   if (u.cooldown > 0) return;
   u.cooldown = u.def.attackCooldownTicks;
-  if (tu != null) {
-    tu.hp -= math.max(1, u.def.attack - tu.def.armor);
-    w.events.add(
-      GameEvent(EventType.underAttack, tu.owner, tu.id, tu.tileX, tu.tileY),
-    );
-    if (tu.hp <= 0) {
-      w.killUnit(tu);
-    } else if (tu.state == UnitState.idle &&
-        tu.def.military &&
-        (tu.stance == Stance.aggressive || tu.stance == Stance.defensive)) {
-      issueOrder(w, tu, Order.attack(u.id), queue: false);
+
+  var pct = attackPercentOf(w, u);
+  final tx = unitOk ? tu.tileX : tb!.tx;
+  final ty = unitOk ? tu.tileY : tb!.ty;
+  if (higherGround(w, u.tileX, u.tileY, tx, ty)) {
+    pct += w.balance.combat.heightBonusPercent;
+  }
+  var first = false;
+  for (var i = 0; i < u.effects.length; i++) {
+    if (u.effects[i].kind == EffectKind.firstHitPct) {
+      pct += u.effects[i].value;
+      u.effects.removeAt(i);
+      first = true;
+      break;
+    }
+  }
+
+  if (u.def.projectileSpeed > 0) {
+    final aimX = unitOk ? tu.x : tb!.center.x;
+    final aimY = unitOk ? tu.y : tb!.center.y;
+    launchUnitProjectile(w, u, o.a, aimX, aimY, pct, firstHit: first);
+    return;
+  }
+  if (unitOk) {
+    final dmg = calcUnitDamage(w, u.def, pct, tu);
+    final killed = damageUnit(w, tu, dmg, srcOwner: u.owner, src: u);
+    if (!killed && u.def.onHit != null) {
+      addEffect(w, tu, u.def.onHit!, -1, srcOwner: u.owner, srcUnit: u);
     }
   } else {
-    tb!.hp -= math.max(1, u.def.attack - tb.def.armor);
-    w.events.add(
-      GameEvent(EventType.underAttack, tb.owner, tb.id, tb.tx, tb.ty),
+    damageBuilding(
+      w,
+      tb!,
+      calcBuildingDamage(w, u.def, pct, tb),
+      srcOwner: u.owner,
     );
-    if (tb.hp <= 0) w.removeBuilding(tb, destroyed: true);
   }
 }
 

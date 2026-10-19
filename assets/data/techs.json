@@ -11,6 +11,45 @@
     {"id": "gather_iron_1", "age": 0, "cost": {"food": 100, "wood": 75}, "researchSeconds": 30,
      "effects": [{"stat": "gather", "res": "iron", "percent": 20}]},
     {"id": "gather_gold_1", "age": 0, "cost": {"food": 100, "wood": 75}, "researchSeconds": 30,
-     "effects": [{"stat": "gather", "res": "gold", "percent": 20}]}
+     "effects": [{"stat": "gather", "res": "gold", "percent": 20}]},
+
+    {"id": "melee_attack_1", "age": 1, "cost": {"food": 100, "iron": 60}, "researchSeconds": 35,
+     "effects": [
+       {"stat": "attack", "class": "infantry", "percent": 15},
+       {"stat": "attack", "class": "cavalry", "percent": 15}
+     ]},
+    {"id": "melee_attack_2", "age": 2, "cost": {"food": 200, "iron": 120}, "researchSeconds": 45,
+     "effects": [
+       {"stat": "attack", "class": "infantry", "percent": 15},
+       {"stat": "attack", "class": "cavalry", "percent": 15}
+     ]},
+    {"id": "pierce_attack_1", "age": 1, "cost": {"wood": 100, "iron": 60}, "researchSeconds": 35,
+     "effects": [{"stat": "attack", "class": "archer", "percent": 15}]},
+    {"id": "pierce_attack_2", "age": 2, "cost": {"wood": 200, "iron": 120}, "researchSeconds": 45,
+     "effects": [{"stat": "attack", "class": "archer", "percent": 15}]},
+    {"id": "armor_inf_1", "age": 1, "cost": {"food": 100, "iron": 80}, "researchSeconds": 35,
+     "effects": [
+       {"stat": "armor", "class": "infantry", "add": 1},
+       {"stat": "pierce_armor", "class": "infantry", "add": 1}
+     ]},
+    {"id": "armor_inf_2", "age": 2, "cost": {"food": 200, "iron": 160}, "researchSeconds": 45,
+     "effects": [
+       {"stat": "armor", "class": "infantry", "add": 1},
+       {"stat": "pierce_armor", "class": "infantry", "add": 1}
+     ]},
+    {"id": "armor_cav_1", "age": 2, "cost": {"food": 150, "iron": 100}, "researchSeconds": 40,
+     "effects": [
+       {"stat": "armor", "class": "cavalry", "add": 1},
+       {"stat": "pierce_armor", "class": "cavalry", "add": 1}
+     ]},
+    {"id": "armor_archer_1", "age": 1, "cost": {"wood": 100, "iron": 80}, "researchSeconds": 35,
+     "effects": [
+       {"stat": "armor", "class": "archer", "add": 1},
+       {"stat": "pierce_armor", "class": "archer", "add": 1}
+     ]},
+    {"id": "hp_inf_1", "age": 1, "cost": {"food": 150, "iron": 50}, "researchSeconds": 40,
+     "effects": [{"stat": "hp", "class": "infantry", "percent": 15}]},
+    {"id": "siege_1", "age": 2, "cost": {"wood": 200, "iron": 150}, "researchSeconds": 50,
+     "effects": [{"stat": "attack", "class": "siege", "percent": 20}, {"stat": "range", "class": "siege", "add": 1}]}
   ]
 }

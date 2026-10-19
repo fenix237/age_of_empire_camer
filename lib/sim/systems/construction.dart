@@ -18,7 +18,7 @@ CmdResult validatePlacement(
 ) {
   final m = w.map;
   final p = w.players[owner];
-  if (def.age > p.age) return CmdResult.locked;
+  if (def.age > p.age || p.locked.contains(def.id)) return CmdResult.locked;
   for (final req in def.requires) {
     final has = w.buildings.values.any(
       (b) => b.owner == owner && b.complete && b.def.id == req,
@@ -133,6 +133,7 @@ void finishConstruction(World w) {
     final gain = b.maxHp * b.progressMilli ~/ total - b.maxHp * before ~/ total;
     b.hp = (b.hp + gain).clamp(1, b.maxHp);
     if (b.progressMilli >= total) {
+      w.players[b.owner].stats.buildingsBuilt++;
       b
         ..complete = true
         ..hp = b.hp.clamp(1, b.maxHp);

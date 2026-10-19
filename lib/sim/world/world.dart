@@ -1,3 +1,5 @@
+import 'package:age_of_empire_camer/sim/ai/ai.dart';
+import 'package:age_of_empire_camer/sim/campaign/mission_runtime.dart';
 import 'package:age_of_empire_camer/sim/commands/command.dart';
 import 'package:age_of_empire_camer/sim/commands/journal.dart';
 import 'package:age_of_empire_camer/sim/core/fixed_point.dart';
@@ -8,10 +10,12 @@ import 'package:age_of_empire_camer/sim/data/defs.dart';
 import 'package:age_of_empire_camer/sim/data/defs_loader.dart';
 import 'package:age_of_empire_camer/sim/pathfinding/astar.dart';
 import 'package:age_of_empire_camer/sim/pathfinding/flow_field.dart';
+import 'package:age_of_empire_camer/sim/systems/combat.dart';
 import 'package:age_of_empire_camer/sim/systems/construction.dart';
 import 'package:age_of_empire_camer/sim/systems/path_service.dart';
 import 'package:age_of_empire_camer/sim/systems/production.dart';
 import 'package:age_of_empire_camer/sim/systems/unit_system.dart';
+import 'package:age_of_empire_camer/sim/systems/victory.dart';
 import 'package:age_of_empire_camer/sim/systems/vision.dart';
 import 'package:age_of_empire_camer/sim/world/entities.dart';
 import 'package:age_of_empire_camer/sim/world/game_map.dart';
@@ -28,6 +32,8 @@ enum EventType {
   resourceDepleted,
   underAttack,
   commandRejected,
+  ageAdvanced,
+  playerDefeated,
 }
 
 /// Événement de jeu pour l'interface (alertes, sons). Non persistant.
@@ -56,6 +62,9 @@ class World {
        astar = AStar(map),
        spatial = SpatialHash(map.width, map.height) {
     paths = PathService(this);
+    for (final p in players) {
+      p.spellCd = List<int>.filled(defs.powers.length, 0);
+    }
   }
 
   final Defs defs;
@@ -73,6 +82,26 @@ class World {
   final Map<int, Building> buildings = <int, Building>{};
   final Map<int, ResourceNode> nodes = <int, ResourceNode>{};
   final Map<int, FlowField> flows = <int, FlowField>{};
+
+  /// Projectiles en vol (flèches, boulets), par identifiant croissant.
+  final Map<int, Projectile> projectiles = <int, Projectile>{};
+
+  /// Règle de victoire : 0 = aucune (tests), 1 = conquête, 2 = centres-villes.
+  int victoryMode = 0;
+
+  /// Mission de campagne en cours (null en escarmouche).
+  MissionRuntime? mission;
+
+  /// État de mission lu dans une sauvegarde, en attente de sa définition
+  /// (voir `attachMission`).
+  Map<String, dynamic>? missionRaw;
+
+  /// Les IA réfléchissent (désactivé pour rejouer un journal de commandes).
+  bool aiEnabled = true;
+
+  /// Équipe gagnante (-1 : partie en cours, -2 : égalité).
+  int winnerTeam = -1;
+  bool gameOver = false;
 
   /// File FIFO des unités en attente d'un calcul de chemin.
   final List<int> pathQueue = <int>[];
@@ -112,6 +141,10 @@ class World {
 
   Unit spawnUnit(UnitDef def, int owner, int fxX, int fxY) {
     final u = Unit(id: newId(), def: def, owner: owner, x: fxX, y: fxY);
+    final mhp = maxHpFor(this, owner, def);
+    u
+      ..maxHp = mhp
+      ..hp = mhp;
     units[u.id] = u;
     players[owner].popUsed += def.pop;
     return u;
@@ -203,6 +236,7 @@ class World {
   void step() {
     events.clear();
     recount();
+    updateAi(this);
 
     if (_pending.isNotEmpty) {
       final batch = List<Command>.of(_pending);
@@ -223,7 +257,12 @@ class World {
     for (final u in List<Unit>.of(units.values)) {
       if (u.alive) updateUnit(this, u);
     }
+    updateBuildingCombat(this);
+    updateProjectiles(this);
+    updatePowers(this);
     finishConstruction(this);
+    updateVictory(this);
+    mission?.update(this);
     _cleanup();
 
     if (tick % balance.visionEveryTicks == 0) updateVision(this);
@@ -272,7 +311,14 @@ class World {
     u.state = UnitState.dead;
     u.hp = 0;
     u.orders.clear();
+    u.effects.clear();
     u.clearPath();
+    final p = players[u.owner];
+    p.stats.unitsLost++;
+    if (u.def.isHero) {
+      p.fallenHeroes.add(u.def.index);
+      p.stats.heroDeaths++;
+    }
     events.add(GameEvent(EventType.unitDied, u.owner, u.id, u.tileX, u.tileY));
   }
 
@@ -341,7 +387,20 @@ class World {
         ..addInt(p.age)
         ..addInts(p.stock.v)
         ..addInts(p.techs)
-        ..addBytes(p.explored);
+        ..addBytes(p.explored)
+        ..addInt(p.clan)
+        ..addInt(p.team)
+        ..addInt(p.aiLevel)
+        ..addInt(p.defeated ? 1 : 0)
+        ..addInt(p.noVitalSince)
+        ..addInt(p.drum)
+        ..addInts(p.spellCd)
+        ..addInts(p.fallenHeroes);
+      if (p.locked.isNotEmpty) {
+        h.addInts(<int>[
+          for (final l in (p.locked.toList()..sort())) stableStringHash(l),
+        ]);
+      }
     }
     for (final u in units.values) {
       h
@@ -373,7 +432,21 @@ class World {
         ..addInt(u.speedCap)
         ..addInt(u.moveReach)
         ..addInt(u.gatherRes)
+        ..addInt(u.maxHp)
+        ..addInt(u.homeX)
+        ..addInt(u.homeY)
+        ..addInt(u.leashed ? 1 : 0)
+        ..addInt(u.stunImmuneUntil)
+        ..addInts(u.powerCd)
+        ..addInt(u.effects.length)
         ..addInt(u.orders.length);
+      for (final e in u.effects) {
+        h
+          ..addInt(e.kind.index)
+          ..addInt(e.power)
+          ..addInt(e.remaining)
+          ..addInt(e.value);
+      }
       for (final o in u.orders) {
         h
           ..addInt(o.kind.index)
@@ -393,6 +466,7 @@ class World {
         ..addInt(b.complete ? 1 : 0)
         ..addInt(b.progressMilli)
         ..addInt(b.stock)
+        ..addInt(b.cooldown)
         ..addInt(b.rallyX)
         ..addInt(b.rallyY)
         ..addInt(b.rallyTarget)
@@ -402,6 +476,7 @@ class World {
       for (final q in b.queue) {
         h
           ..addInt(q.isTech ? 1 : 0)
+          ..addInt(q.isAge ? 1 : 0)
           ..addInt(q.defIndex)
           ..addInt(q.remaining)
           ..addInts(q.paid.v);
@@ -421,12 +496,20 @@ class World {
         ..addInt(f.goal.reach);
     }
     h.addInts(pathQueue);
+    for (final pr in projectiles.values) {
+      h.addInts(pr.toJson());
+    }
+    h
+      ..addInt(victoryMode)
+      ..addInt(winnerTeam)
+      ..addInt(gameOver ? 1 : 0);
+    mission?.hashInto(h);
     return h.value;
   }
 
   // ───────────────────────── Sérialisation ─────────────────────────
 
-  static const int stateFormat = 1;
+  static const int stateFormat = 2;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'format': stateFormat,
@@ -445,6 +528,12 @@ class World {
         <int>[f.id, f.goal.x0, f.goal.y0, f.goal.x1, f.goal.y1, f.goal.reach],
     ],
     'pathQueue': pathQueue,
+    'projectiles': <dynamic>[for (final p in projectiles.values) p.toJson()],
+    'victory': <int>[victoryMode, winnerTeam, if (gameOver) 1 else 0],
+    if (mission != null)
+      'mission': mission!.toJson()
+    else if (missionRaw != null)
+      'mission': missionRaw,
   };
 
   static World fromJson(Defs defs, Map<String, dynamic> j) {
@@ -463,7 +552,7 @@ class World {
     w.players.clear();
     for (final p in playersJson) {
       w.players.add(
-        Player.fromJson(p as Map<String, dynamic>, map.size, defs.techs),
+        Player.fromJson(p as Map<String, dynamic>, map.size, defs),
       );
     }
     w
@@ -501,6 +590,16 @@ class World {
       );
     }
     w.pathQueue.addAll(List<int>.from(j['pathQueue'] as List<dynamic>));
+    for (final p in j['projectiles'] as List<dynamic>) {
+      final pr = Projectile.fromJson(p);
+      w.projectiles[pr.id] = pr;
+    }
+    final v = List<int>.from(j['victory'] as List<dynamic>);
+    w
+      ..victoryMode = v[0]
+      ..winnerTeam = v[1]
+      ..gameOver = v[2] == 1;
+    w.missionRaw = j['mission'] as Map<String, dynamic>?;
     map.version = mapJson['version'] as int;
     w.recount();
     updateVision(w, mergeExplored: false);

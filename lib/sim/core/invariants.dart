@@ -18,6 +18,32 @@ List<String> checkInvariants(World w) {
       if (p.stock[r] < 0) fail('Ressource négative joueur ${p.id} ${r.name}');
     }
     if (p.popUsed < 0) fail('Population négative joueur ${p.id}');
+    if (p.drum < 0 || p.drum > w.balance.combat.drumMax) {
+      fail('Énergie du tambour hors bornes joueur ${p.id} (${p.drum})');
+    }
+    for (final c in p.spellCd) {
+      if (c < 0) fail('Recharge de sort négative joueur ${p.id}');
+    }
+  }
+  if (w.projectiles.length > w.balance.combat.maxProjectiles) {
+    fail('Trop de projectiles (${w.projectiles.length})');
+  }
+  final heroes = <int, int>{};
+  for (final u in w.units.values) {
+    if (u.alive && u.def.isHero) {
+      heroes[u.owner] = (heroes[u.owner] ?? 0) + 1;
+    }
+    if (w.players[u.owner].defeated && u.alive) {
+      fail('Unité ${u.id} d’un joueur éliminé');
+    }
+  }
+  heroes.forEach((owner, n) {
+    if (n > 1) fail('Joueur $owner : $n héros vivants (maximum 1)');
+  });
+  for (final b in w.buildings.values) {
+    if (w.players[b.owner].defeated) {
+      fail('Bâtiment ${b.id} d’un joueur éliminé');
+    }
   }
 
   bool known(int id) => w.exists(id);
@@ -26,7 +52,16 @@ List<String> checkInvariants(World w) {
     // 4. PV > 0 ; une unité morte est retirée avant la fin du tick.
     if (u.state == UnitState.dead) fail('Unité morte non retirée ${u.id}');
     if (u.hp <= 0) fail('Unité ${u.id} avec PV ${u.hp}');
-    if (u.hp > u.def.hp) fail('Unité ${u.id} PV > max');
+    if (u.hp > u.maxHp) fail('Unité ${u.id} PV > max');
+    if (u.effects.length > w.balance.combat.maxEffects) {
+      fail('Unité ${u.id} : trop d’effets (${u.effects.length})');
+    }
+    for (final e in u.effects) {
+      if (e.remaining <= 0) fail('Unité ${u.id} : effet expiré non retiré');
+    }
+    for (final c in u.powerCd) {
+      if (c < 0) fail('Unité ${u.id} : recharge négative');
+    }
     if (u.state == UnitState.garrisoned) {
       if (!w.buildings.containsKey(u.garrisonIn)) {
         fail('Unité ${u.id} garnisonnée dans un bâtiment absent');
@@ -90,10 +125,14 @@ List<String> checkInvariants(World w) {
     }
     if (b.queue.length > w.balance.maxQueue) fail('File trop longue ${b.id}');
     for (final q in b.queue) {
-      final cost = q.isTech
-          ? w.defs.techs[q.defIndex].cost
-          : w.defs.units[q.defIndex].cost;
-      if (q.paid != cost) {
+      final cost = q.isAge
+          ? w.defs.ages[q.defIndex].cost
+          : (q.isTech
+                ? w.defs.techs[q.defIndex].cost
+                : w.defs.units[q.defIndex].cost);
+      final hero = !q.isTech && !q.isAge && w.defs.units[q.defIndex].isHero;
+      // Un héros tombé coûte plus cher à ressusciter : coût payé ≥ coût de base.
+      if (hero ? !q.paid.covers(cost) : q.paid != cost) {
         fail('Bâtiment ${b.id}: coût payé ≠ coût remboursable');
       }
     }
@@ -171,7 +210,10 @@ List<String> validateStructure(World w) {
     }
     if (u.carryRes >= 5) fail('Type de charge invalide unité ${u.id}');
     if (u.gatherRes >= 5) fail('Type de récolte invalide unité ${u.id}');
-    if (u.hp > u.def.hp * 4) fail('PV aberrants unité ${u.id}');
+    if (u.maxHp < 1 || u.maxHp > u.def.hp * 4) {
+      fail('PV maximum aberrants unité ${u.id}');
+    }
+    if (u.effects.length > 64) fail('Effets aberrants unité ${u.id}');
   }
   for (final b in w.buildings.values) {
     if (b.owner < 0 || b.owner >= w.players.length) {
@@ -184,7 +226,9 @@ List<String> validateStructure(World w) {
       fail('Bâtiment ${b.id} hors carte');
     }
     for (final q in b.queue) {
-      final n = q.isTech ? w.defs.techs.length : w.defs.units.length;
+      final n = q.isAge
+          ? w.defs.ages.length
+          : (q.isTech ? w.defs.techs.length : w.defs.units.length);
       if (q.defIndex < 0 || q.defIndex >= n) {
         fail('File invalide bâtiment ${b.id}');
       }
@@ -203,6 +247,10 @@ List<String> validateStructure(World w) {
     }
     if (p.age < 0 || p.age >= w.defs.ages.length) {
       fail('Âge invalide joueur ${p.id}');
+    }
+    if (p.clan >= w.defs.clans.length) fail('Clan invalide joueur ${p.id}');
+    if (p.spellCd.length != w.defs.powers.length) {
+      fail('Recharges de sorts de mauvaise taille (joueur ${p.id})');
     }
   }
   if (out.isEmpty) out.addAll(checkInvariants(w));

@@ -25,6 +25,9 @@ class Defs {
     required this.ages,
     required this.techs,
     required this.balance,
+    required this.powers,
+    required this.clans,
+    required this.ai,
   });
 
   /// Noms de fichiers attendus (sans extension) pour [Defs.fromFiles].
@@ -36,6 +39,9 @@ class Defs {
     'ages',
     'techs',
     'balance',
+    'powers',
+    'clans',
+    'ai',
   ];
 
   final List<TerrainDef> terrain;
@@ -45,6 +51,9 @@ class Defs {
   final List<AgeDef> ages;
   final List<TechDef> techs;
   final BalanceDef balance;
+  final List<PowerDef> powers;
+  final List<ClanDef> clans;
+  final AiDef ai;
 
   late final Map<String, UnitDef> _unitById = <String, UnitDef>{
     for (final u in units) u.id: u,
@@ -58,6 +67,12 @@ class Defs {
   late final Map<String, ResourceDef> _resById = <String, ResourceDef>{
     for (final r in resources) r.id: r,
   };
+  late final Map<String, PowerDef> _powerById = <String, PowerDef>{
+    for (final p in powers) p.id: p,
+  };
+  late final Map<String, ClanDef> _clanById = <String, ClanDef>{
+    for (final c in clans) c.id: c,
+  };
 
   UnitDef unit(String id) => _unitById[id]!;
   BuildingDef building(String id) => _buildingById[id]!;
@@ -66,6 +81,10 @@ class Defs {
   UnitDef? tryUnit(String id) => _unitById[id];
   BuildingDef? tryBuilding(String id) => _buildingById[id];
   TechDef? tryTech(String id) => _techById[id];
+  PowerDef power(String id) => _powerById[id]!;
+  PowerDef? tryPower(String id) => _powerById[id];
+  ClanDef clan(String id) => _clanById[id]!;
+  ClanDef? tryClan(String id) => _clanById[id];
 
   /// Charge depuis le texte JSON de chaque fichier (clé = nom sans extension).
   static Defs fromFiles(Map<String, String> files) {
@@ -173,6 +192,23 @@ class Defs {
           villager: villager,
           carryCapacity: carry,
           gatherRates: rates,
+          classes: <String>{
+            ...o.strList('classes', def: const <String>[]),
+            if (villager) 'villager',
+          },
+          pierceArmor: o.integer('pierceArmor', min: 0, max: 1000, def: 0),
+          damageType: o.damageType('damageType'),
+          bonus: o.intMap('bonus'),
+          projectileSpeed: o.integer(
+            'projectileSpeed',
+            min: 0,
+            max: 100000,
+            def: 0,
+          ),
+          splash: o.integer('splash', min: 0, max: 8000, def: 0),
+          powers: o.strList('powers', def: const <String>[]),
+          clan: o.optStr('clan'),
+          onHit: o.optEffect('onHit'),
         ),
       );
     }
@@ -184,22 +220,7 @@ class Defs {
     for (final o in root.objList('techs')) {
       final effects = <TechEffect>[];
       for (final e in o.objList('effects')) {
-        final stat = e.str('stat');
-        if (stat != 'carry' && stat != 'gather') {
-          throw DataException(
-            e.file,
-            '${e.path}.stat',
-            "'carry' ou 'gather' attendu, reçu '$stat'",
-          );
-        }
-        effects.add(
-          TechEffect(
-            stat: stat,
-            res: stat == 'gather' ? e.res('res') : null,
-            add: e.integer('add', min: -1000, max: 1000, def: 0),
-            percent: e.integer('percent', min: -100, max: 1000, def: 0),
-          ),
-        );
+        effects.add(e.techEffect());
       }
       techs.add(
         TechDef(
@@ -258,6 +279,26 @@ class Defs {
           market: o.boolean('market', def: false),
           townCenter: o.boolean('townCenter', def: false),
           startsComplete: o.boolean('startsComplete', def: false),
+          pierceArmor: o.integer('pierceArmor', min: -1, max: 1000, def: -1),
+          attack: o.integer('attack', min: 0, max: 100000, def: 0),
+          range: o.integer('range', min: 0, max: 30, def: 0),
+          attackCooldownTicks: o.integer(
+            'attackCooldownTicks',
+            min: 1,
+            max: 1000,
+            def: 20,
+          ),
+          projectileSpeed: o.integer(
+            'projectileSpeed',
+            min: 0,
+            max: 100000,
+            def: 0,
+          ),
+          garrisonArrows: o.integer('garrisonArrows', min: 0, max: 10, def: 0),
+          classes: o.strList('classes', def: const <String>[]).toSet(),
+          vital: o.boolean('vital', def: true),
+          agesUp: o.boolean('agesUp', def: false),
+          clan: o.optStr('clan'),
         ),
       );
     }
@@ -277,6 +318,7 @@ class Defs {
             'requiresBuildings',
             def: const <String>[],
           ),
+          researchedAt: o.strList('researchedAt', def: const <String>[]),
         ),
       );
     }
@@ -287,6 +329,114 @@ class Defs {
 
     final balance = _parseBalance(_Obj('balance', r'$', files['balance']!));
 
+    final powers = <PowerDef>[];
+    root = _Obj('powers', r'$', files['powers']!);
+    i = 0;
+    for (final o in root.objList('powers')) {
+      final target = o.str('target');
+      final affects = o.str('affects');
+      powers.add(
+        PowerDef(
+          id: o.str('id'),
+          index: i++,
+          age: o.integer('age', min: 0, max: 9, def: 0),
+          cooldownTicks:
+              o.integer('cooldownSeconds', min: 0, max: 3600, def: 0) * 10,
+          target: PowerTarget.values.firstWhere(
+            (t) => t.name == target,
+            orElse: () => o.fail('target', 'self, unit ou ground attendu'),
+          ),
+          rangeTiles: o.integer('rangeTiles', min: 0, max: 30, def: 0),
+          radius: o.integer('radius', min: 0, max: 20000, def: 0),
+          affects: PowerAffects.values.firstWhere(
+            (t) => t.name == affects,
+            orElse: () => o.fail('affects', 'allies, enemies ou all attendu'),
+          ),
+          effects: <EffectSpec>[
+            for (final e in o.objList('effects')) e.effect(),
+          ],
+          drumCost: o.integer('drumCost', min: 0, max: 10000, def: 0),
+          aura: o.boolean('aura', def: false),
+          includeSelf: o.boolean('includeSelf', def: true),
+        ),
+      );
+    }
+    _unique('powers', powers.map((e) => e.id));
+
+    final clans = <ClanDef>[];
+    root = _Obj('clans', r'$', files['clans']!);
+    i = 0;
+    for (final o in root.objList('clans')) {
+      final pers = o.obj('personality');
+      clans.add(
+        ClanDef(
+          id: o.str('id'),
+          index: i++,
+          playable: o.boolean('playable', def: true),
+          hero: o.str('hero'),
+          effects: <TechEffect>[
+            for (final e in o.objList('effects')) e.techEffect(),
+          ],
+          startBonus: o.cost('startBonus'),
+          personality: AiPersonality(
+            aggression: pers.integer('aggression', min: 0, max: 100),
+            economy: pers.integer('economy', min: 0, max: 100),
+            towers: pers.integer('towers', min: 0, max: 100),
+            siege: pers.integer('siege', min: 0, max: 100),
+            cavalry: pers.integer('cavalry', min: 0, max: 100),
+            raidWave: pers.integer('raidWave', min: 1, max: 200),
+          ),
+        ),
+      );
+    }
+    _unique('clans', clans.map((e) => e.id));
+    if (clans.isEmpty) {
+      throw DataException('clans', r'$.clans', 'au moins un clan');
+    }
+
+    root = _Obj('ai', r'$', files['ai']!);
+    final shares = root.obj('shares');
+    final difficulties = <DifficultyDef>[];
+    i = 0;
+    for (final o in root.objList('difficulties')) {
+      difficulties.add(
+        DifficultyDef(
+          id: o.str('id'),
+          index: i++,
+          thinkTicks: o.integer('thinkTicks', min: 1, max: 1000),
+          gatherBonusPercent: o.integer(
+            'gatherBonusPercent',
+            min: 0,
+            max: 500,
+            def: 0,
+          ),
+          attackWaveScale: o.integer('attackWaveScale', min: 10, max: 1000),
+          maxVillagers: o.integer('maxVillagers', min: 1, max: 200),
+          useHero: o.boolean('useHero'),
+          usePowers: o.boolean('usePowers'),
+          shownBonus: o.boolean('shownBonus', def: false),
+        ),
+      );
+    }
+    if (difficulties.length != 3) {
+      throw DataException('ai', r'$.difficulties', 'exactement 3 niveaux');
+    }
+    final ai = AiDef(
+      difficulties: difficulties,
+      watchdogTicks: root.integer('watchdogSeconds', min: 10, max: 3600) * 10,
+      shares: <Res, int>{
+        for (final r in Res.values) r: shares.integer(r.name, min: 0, max: 100),
+      },
+      hutMargin: root.integer('hutMargin', min: 0, max: 50),
+      defenseRadius: root.integer('defenseRadius', min: 2, max: 40),
+      retreatRatioPercent: root.integer(
+        'retreatRatioPercent',
+        min: 0,
+        max: 100,
+      ),
+      attackMinArmy: root.integer('attackMinArmy', min: 1, max: 200),
+    );
+
     final defs = Defs._(
       terrain: terrain,
       resources: resources,
@@ -295,6 +445,9 @@ class Defs {
       ages: ages,
       techs: techs,
       balance: balance,
+      powers: powers,
+      clans: clans,
+      ai: ai,
     );
     defs._validateReferences();
     return defs;
@@ -310,7 +463,58 @@ class Defs {
         'liste de >= 2 entiers positifs',
       );
     }
+    final cb = o.obj('combat');
+    final styles = <MapStyleDef>[
+      for (final s in o.objList('mapStyles'))
+        MapStyleDef(
+          id: s.str('id'),
+          waterDelta: s.integer('waterDelta', min: -100, max: 100),
+          mountainDelta: s.integer('mountainDelta', min: -100, max: 100),
+          forestDelta: s.integer('forestDelta', min: -100, max: 100),
+        ),
+    ];
+    if (styles.isEmpty) {
+      throw DataException(o.file, r'$.mapStyles', 'au moins un style');
+    }
     return BalanceDef(
+      mapStyles: styles,
+      combat: CombatDef(
+        leashTiles: cb.integer('leashTiles', min: 1, max: 100),
+        heightBonusPercent: cb.integer('heightBonusPercent', min: 0, max: 200),
+        collapseDamage: cb.integer('collapseDamage', min: 0, max: 1000),
+        maxProjectiles: cb.integer('maxProjectiles', min: 10, max: 100000),
+        drumMax: cb.integer('drumMax', min: 1, max: 100000),
+        drumPerDamage: cb.integer('drumPerDamage', min: 0, max: 1000),
+        drumPerKill: cb.integer('drumPerKill', min: 0, max: 10000),
+        stunImmunityTicks: cb.integer('stunImmunityTicks', min: 0, max: 1000),
+        slowCapPercent: cb.integer('slowCapPercent', min: 0, max: 95),
+        attackBuffCapPercent: cb.integer(
+          'attackBuffCapPercent',
+          min: 0,
+          max: 1000,
+        ),
+        attackDebuffCapPercent: cb.integer(
+          'attackDebuffCapPercent',
+          min: 0,
+          max: 95,
+        ),
+        armorBuffCap: cb.integer('armorBuffCap', min: 0, max: 100),
+        maxEffects: cb.integer('maxEffects', min: 1, max: 50),
+        heroReviveCostPercent: cb.integer(
+          'heroReviveCostPercent',
+          min: 100,
+          max: 1000,
+        ),
+        auraPeriodTicks: cb.integer('auraPeriodTicks', min: 1, max: 100),
+        acquirePeriod: cb.integer('acquirePeriod', min: 1, max: 100),
+        siegeBuildingArmorDivisor: cb.integer(
+          'siegeBuildingArmorDivisor',
+          min: 1,
+          max: 100,
+        ),
+        projectileTtlTicks: cb.integer('projectileTtlTicks', min: 5, max: 1000),
+        straggleSeconds: cb.integer('straggleSeconds', min: 0, max: 3600),
+      ),
       startingResources: o.cost('startingResources'),
       startingVillagers: o.integer('startingVillagers', min: 0, max: 50),
       maxPopulation: o.integer('maxPopulation', min: 1, max: 1000),
@@ -420,6 +624,50 @@ class Defs {
         }
       }
     }
+    for (final u in units) {
+      for (final pw in u.powers) {
+        if (!_powerById.containsKey(pw)) {
+          throw DataException(
+            'units',
+            '${u.id}.powers',
+            "pouvoir inconnu '$pw'",
+          );
+        }
+      }
+      if (u.clan.isNotEmpty && !_clanById.containsKey(u.clan)) {
+        throw DataException(
+          'units',
+          '${u.id}.clan',
+          "clan inconnu '${u.clan}'",
+        );
+      }
+    }
+    for (final c in clans) {
+      if (!_unitById.containsKey(c.hero)) {
+        throw DataException(
+          'clans',
+          '${c.id}.hero',
+          "unité inconnue '${c.hero}'",
+        );
+      }
+    }
+    if (!buildings.any((b) => b.agesUp)) {
+      throw DataException('buildings', r'$.buildings', "un bâtiment 'agesUp'");
+    }
+    for (var n = 1; n < ages.length; n++) {
+      if (ages[n].researchedAt.isEmpty) {
+        throw DataException('ages', '${ages[n].id}.researchedAt', 'requis');
+      }
+      for (final r in ages[n].researchedAt) {
+        if (!_buildingById.containsKey(r)) {
+          throw DataException(
+            'ages',
+            '${ages[n].id}.researchedAt',
+            "bâtiment inconnu '$r'",
+          );
+        }
+      }
+    }
     for (final a in ages) {
       for (final r in a.requiresBuildings) {
         if (!_buildingById.containsKey(r)) {
@@ -455,6 +703,64 @@ class _Obj {
 
   Never _fail(String key, String msg) =>
       throw DataException(file, '$path.$key', msg);
+
+  Never fail(String key, String msg) => _fail(key, msg);
+
+  String optStr(String key) {
+    final v = map[key];
+    if (v == null) return '';
+    if (v is! String) _fail(key, 'texte attendu');
+    return v;
+  }
+
+  DamageType damageType(String key) {
+    final v = map[key];
+    if (v == null) return DamageType.melee;
+    for (final t in DamageType.values) {
+      if (t.name == v) return t;
+    }
+    _fail(key, 'melee, pierce ou siege attendu');
+  }
+
+  Map<String, int> intMap(String key) {
+    final v = map[key];
+    if (v == null) return const <String, int>{};
+    final o = obj(key);
+    return <String, int>{
+      for (final k in o.keys) k: o.integer(k, min: -1000, max: 1000),
+    };
+  }
+
+  EffectSpec effect() {
+    final k = str('kind');
+    final kind = effectKindByName[k];
+    if (kind == null) _fail('kind', "effet inconnu '$k'");
+    return EffectSpec(
+      kind,
+      integer('value', min: -1000, max: 1000, def: 0),
+      integer('seconds', min: 0, max: 600, def: 0) * 10,
+    );
+  }
+
+  EffectSpec? optEffect(String key) {
+    final v = map[key];
+    if (v == null) return null;
+    return obj(key).effect();
+  }
+
+  TechEffect techEffect() {
+    final stat = str('stat');
+    if (!TechEffect.stats.contains(stat)) {
+      _fail('stat', "statistique inconnue '$stat'");
+    }
+    return TechEffect(
+      stat: stat,
+      res: stat == 'gather' && map['res'] != null ? res('res') : null,
+      add: integer('add', min: -1000, max: 1000, def: 0),
+      percent: integer('percent', min: -100, max: 1000, def: 0),
+      cls: optStr('class').isEmpty ? 'all' : optStr('class'),
+    );
+  }
 
   String str(String key) {
     final v = map[key];

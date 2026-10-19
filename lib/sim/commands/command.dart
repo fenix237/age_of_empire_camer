@@ -1,4 +1,5 @@
 import 'package:age_of_empire_camer/sim/data/res.dart';
+import 'package:age_of_empire_camer/sim/systems/combat.dart';
 import 'package:age_of_empire_camer/sim/systems/construction.dart';
 import 'package:age_of_empire_camer/sim/systems/economy.dart';
 import 'package:age_of_empire_camer/sim/systems/production.dart';
@@ -24,6 +25,7 @@ enum CmdResult {
   unexplored,
   notComplete,
   nothingToDo,
+  outOfRange,
 }
 
 /// Toute action du joueur (ou de l'IA) est une commande sérialisable.
@@ -99,6 +101,21 @@ sealed class Command {
         );
       case 'reseed':
         return ReseedCmd(o, j['id'] as int);
+      case 'power':
+        return PowerCmd(
+          o,
+          j['unit'] as int,
+          j['slot'] as int,
+          x: j['x'] as int,
+          y: j['y'] as int,
+          target: j['target'] as int,
+        );
+      case 'spell':
+        return SpellCmd(o, j['power'] as int, j['x'] as int, j['y'] as int);
+      case 'ageup':
+        return AgeUpCmd(o, j['building'] as int);
+      case 'resign':
+        return ResignCmd(o);
       default:
         throw FormatException("Commande inconnue '${j['t']}'");
     }
@@ -621,5 +638,112 @@ class ReseedCmd extends Command {
       return CmdResult.wrongTarget;
     }
     return reseedField(w, b) ? CmdResult.ok : CmdResult.cannotAfford;
+  }
+}
+
+/// Pouvoir d'une unité : [slot] 0 = pouvoir de base, 1 = ultime (héros).
+class PowerCmd extends Command {
+  const PowerCmd(
+    super.owner,
+    this.unit,
+    this.slot, {
+    this.x = 0,
+    this.y = 0,
+    this.target = -1,
+  });
+
+  final int unit;
+  final int slot;
+  final int x;
+  final int y;
+  final int target;
+
+  @override
+  String get type => 'power';
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    't': type,
+    'o': owner,
+    'unit': unit,
+    'slot': slot,
+    'x': x,
+    'y': y,
+    'target': target,
+  };
+
+  @override
+  CmdResult apply(World w) {
+    if (!_validOwner(w, owner)) return CmdResult.invalid;
+    return usePower(w, owner, unit, slot, x, y, target);
+  }
+}
+
+/// Sort de bataille lancé sur une case (énergie du tambour).
+class SpellCmd extends Command {
+  const SpellCmd(super.owner, this.power, this.x, this.y);
+
+  /// Indice du pouvoir dans `Defs.powers`.
+  final int power;
+  final int x;
+  final int y;
+
+  @override
+  String get type => 'spell';
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    't': type,
+    'o': owner,
+    'power': power,
+    'x': x,
+    'y': y,
+  };
+
+  @override
+  CmdResult apply(World w) {
+    if (!_validOwner(w, owner)) return CmdResult.invalid;
+    return castSpell(w, owner, power, x, y);
+  }
+}
+
+/// Lance la recherche du prochain âge dans le bâtiment indiqué.
+class AgeUpCmd extends Command {
+  const AgeUpCmd(super.owner, this.building);
+
+  final int building;
+
+  @override
+  String get type => 'ageup';
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    't': type,
+    'o': owner,
+    'building': building,
+  };
+
+  @override
+  CmdResult apply(World w) {
+    if (!_validOwner(w, owner)) return CmdResult.invalid;
+    return enqueueAgeUp(w, owner, building);
+  }
+}
+
+/// Reddition : le joueur est éliminé au prochain contrôle de victoire.
+class ResignCmd extends Command {
+  const ResignCmd(super.owner);
+
+  @override
+  String get type => 'resign';
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{'t': type, 'o': owner};
+
+  @override
+  CmdResult apply(World w) {
+    if (!_validOwner(w, owner)) return CmdResult.invalid;
+    w.players[owner].resigned = true;
+    return CmdResult.ok;
   }
 }

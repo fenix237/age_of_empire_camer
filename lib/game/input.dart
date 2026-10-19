@@ -76,11 +76,18 @@ class GameInput {
       return;
     }
     if (e.buttons & kSecondaryMouseButton != 0) {
-      if (c.placing != null) {
+      if (c.targeting != null) {
+        c.cancelTargeting();
+      } else if (c.placing != null) {
         c.cancelPlacement();
       } else {
         c.orderAt(e.localPosition, queue: _shift);
       }
+      return;
+    }
+    if (e.buttons & kPrimaryMouseButton != 0 && c.targeting != null) {
+      c.resolveTargeting(e.localPosition);
+      _downPos = null;
       return;
     }
     if (e.buttons & kPrimaryMouseButton != 0 && c.placing != null) {
@@ -148,6 +155,7 @@ class GameInput {
 
   void pointerHover(PointerHoverEvent e) {
     hover = e.localPosition;
+    c.hoverScreen = e.localPosition;
     pointerInside = true;
     if (c.placing != null) c.updateGhost(e.localPosition);
   }
@@ -172,6 +180,7 @@ class GameInput {
 
   void _touchDown(PointerDownEvent e) {
     _touches[e.pointer] = e.localPosition;
+    c.hoverScreen = e.localPosition;
     if (_touches.length == 1) {
       _touchStart = e.localPosition;
       _touchMoved = false;
@@ -244,6 +253,11 @@ class GameInput {
 
   /// Appui court : sélectionner, ou donner l'ordre de destination.
   void _tap(Offset pos) {
+    if (c.targeting != null) {
+      c.hoverScreen = pos;
+      c.resolveTargeting(pos, touch: true);
+      return;
+    }
     if (c.placing != null) {
       c.updateGhost(pos);
       return; // la confirmation passe par le bouton ✓ du HUD
@@ -304,6 +318,22 @@ class GameInput {
     LogicalKeyboardKey.digit9,
   ];
 
+  /// Pouvoirs de l'unité sélectionnée (les touches WASD servent à la caméra).
+  static const List<LogicalKeyboardKey> _powerKeys = <LogicalKeyboardKey>[
+    LogicalKeyboardKey.keyZ,
+    LogicalKeyboardKey.keyX,
+    LogicalKeyboardKey.keyC,
+    LogicalKeyboardKey.keyV,
+  ];
+
+  /// Sorts de bataille (énergie du tambour).
+  static const List<LogicalKeyboardKey> _spellKeys = <LogicalKeyboardKey>[
+    LogicalKeyboardKey.f5,
+    LogicalKeyboardKey.f6,
+    LogicalKeyboardKey.f7,
+    LogicalKeyboardKey.f8,
+  ];
+
   /// Renvoie vrai si la touche a été traitée.
   bool keyEvent(KeyEvent e) {
     final k = e.logicalKey;
@@ -315,7 +345,9 @@ class GameInput {
     if (e is! KeyDownEvent) return _panKeys.containsKey(k);
 
     if (k == LogicalKeyboardKey.escape) {
-      if (c.placing != null) {
+      if (c.targeting != null) {
+        c.cancelTargeting();
+      } else if (c.placing != null) {
         c.cancelPlacement();
       } else if (!c.selection.isEmpty) {
         c.selection.clear();
@@ -354,6 +386,18 @@ class GameInput {
     if (k == LogicalKeyboardKey.home) {
       final p = c.world.players[c.localPlayer];
       c.camera.centerOnTile(p.startX + 0.5, p.startY + 0.5);
+      return true;
+    }
+    final power = _powerKeys.indexOf(k);
+    if (power >= 0) {
+      final list = c.selectedPowers;
+      if (power < list.length) c.beginPower(list[power]);
+      return true;
+    }
+    final spell = _spellKeys.indexOf(k);
+    if (spell >= 0) {
+      final spells = c.defs.powers.where((p) => p.isSpell).toList();
+      if (spell < spells.length) c.beginSpell(spells[spell]);
       return true;
     }
     final digit = _digits.indexOf(k);

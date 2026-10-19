@@ -84,6 +84,7 @@ void main() {
         'field',
       ]) {
         final w = blankWorld();
+        w.players[0].age = 1;
         final u = addUnit(w, 'villager', 10, 10);
         final initial = w.players[0].stock.copy();
         expect(

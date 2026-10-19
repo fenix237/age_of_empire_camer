@@ -5,45 +5,91 @@
       "buildSeconds": 120, "hp": 1500, "armor": 3, "vision": 10, "popBonus": 10,
       "dropOff": ["food", "wood", "stone", "iron", "gold"],
       "trains": ["villager"], "researches": [], "garrison": 15,
-      "townCenter": true, "startsComplete": true
+      "townCenter": true, "startsComplete": true, "agesUp": true,
+      "attack": 5, "range": 7, "attackCooldownTicks": 25, "projectileSpeed": 9000, "garrisonArrows": 1
     },
     {
       "id": "hut", "age": 0, "size": [2, 2], "cost": {"wood": 25},
-      "buildSeconds": 15, "hp": 200, "armor": 0, "vision": 4, "popBonus": 5
+      "buildSeconds": 15, "hp": 200, "armor": 0, "vision": 4, "popBonus": 5, "vital": false
     },
     {
       "id": "granary", "age": 0, "size": [2, 2], "cost": {"wood": 100},
-      "buildSeconds": 20, "hp": 350, "armor": 1, "vision": 5, "dropOff": ["food"]
+      "buildSeconds": 20, "hp": 350, "armor": 1, "vision": 5, "dropOff": ["food"], "vital": false
     },
     {
       "id": "lumber_camp", "age": 0, "size": [2, 2], "cost": {"wood": 100},
-      "buildSeconds": 20, "hp": 350, "armor": 1, "vision": 5, "dropOff": ["wood"]
+      "buildSeconds": 20, "hp": 350, "armor": 1, "vision": 5, "dropOff": ["wood"], "vital": false
     },
     {
       "id": "mining_camp", "age": 0, "size": [2, 2], "cost": {"wood": 100},
       "buildSeconds": 20, "hp": 350, "armor": 1, "vision": 5,
-      "dropOff": ["stone", "iron", "gold"]
+      "dropOff": ["stone", "iron", "gold"], "vital": false
     },
     {
       "id": "field", "age": 0, "size": [3, 3], "cost": {"wood": 60},
-      "buildSeconds": 15, "hp": 100, "armor": 0, "vision": 3, "fieldFood": 175
+      "buildSeconds": 15, "hp": 100, "armor": 0, "vision": 3, "fieldFood": 175, "vital": false
     },
     {
       "id": "barracks", "age": 0, "size": [3, 3], "cost": {"wood": 175},
       "buildSeconds": 50, "hp": 800, "armor": 2, "vision": 6,
-      "trains": ["spearman", "archer", "iron_warrior"], "garrison": 10
+      "trains": [
+        "spearman", "archer", "iron_warrior",
+        "river_guard", "net_thrower", "forge_hammer", "raven"
+      ],
+      "garrison": 10
     },
     {
-      "id": "forge", "age": 0, "size": [3, 3], "cost": {"wood": 150, "stone": 50},
-      "buildSeconds": 40, "hp": 700, "armor": 2, "vision": 6,
+      "id": "forge", "age": 1, "size": [3, 3], "cost": {"wood": 150, "stone": 50},
+      "buildSeconds": 40, "hp": 700, "armor": 2, "vision": 6, "vital": false,
       "researches": [
         "carry_1", "gather_food_1", "gather_wood_1",
-        "gather_stone_1", "gather_iron_1", "gather_gold_1"
+        "gather_stone_1", "gather_iron_1", "gather_gold_1",
+        "melee_attack_1", "melee_attack_2", "pierce_attack_1", "pierce_attack_2",
+        "armor_inf_1", "armor_inf_2", "armor_cav_1", "armor_archer_1",
+        "hp_inf_1", "siege_1"
       ]
     },
     {
-      "id": "market", "age": 0, "size": [3, 3], "cost": {"wood": 175},
-      "buildSeconds": 40, "hp": 600, "armor": 1, "vision": 6, "market": true
+      "id": "market", "age": 1, "size": [3, 3], "cost": {"wood": 175},
+      "buildSeconds": 40, "hp": 600, "armor": 1, "vision": 6, "market": true, "vital": false
+    },
+    {
+      "id": "palace", "age": 1, "size": [5, 5], "cost": {"wood": 300, "stone": 200},
+      "buildSeconds": 90, "hp": 1800, "armor": 4, "vision": 8, "agesUp": true,
+      "garrison": 10, "garrisonArrows": 0
+    },
+    {
+      "id": "wall", "age": 1, "size": [1, 1], "cost": {"stone": 8},
+      "buildSeconds": 6, "hp": 450, "armor": 8, "pierceArmor": 30, "vision": 1,
+      "classes": ["wall"], "vital": false
+    },
+    {
+      "id": "tower", "age": 1, "size": [2, 2], "cost": {"stone": 100, "wood": 50},
+      "buildSeconds": 45, "hp": 700, "armor": 3, "vision": 9, "garrison": 5,
+      "attack": 6, "range": 7, "attackCooldownTicks": 20, "projectileSpeed": 9000,
+      "garrisonArrows": 1, "classes": ["tower"], "vital": false
+    },
+    {
+      "id": "stable", "age": 2, "size": [3, 3], "cost": {"wood": 175, "stone": 50},
+      "buildSeconds": 50, "hp": 800, "armor": 2, "vision": 6,
+      "trains": ["horseman", "wind_rider"], "garrison": 5
+    },
+    {
+      "id": "siege_workshop", "age": 2, "size": [4, 4], "cost": {"wood": 200, "stone": 100},
+      "buildSeconds": 60, "hp": 900, "armor": 2, "vision": 6,
+      "trains": ["catapult"]
+    },
+    {
+      "id": "altar", "age": 2, "size": [3, 3], "cost": {"wood": 100, "gold": 100},
+      "buildSeconds": 45, "hp": 700, "armor": 2, "vision": 7, "vital": false,
+      "trains": ["hero_mbarga", "hero_sanaga", "hero_ngolo", "hero_dikoume", "hero_kaba"]
+    },
+    {
+      "id": "fortress", "age": 2, "size": [5, 5], "cost": {"stone": 350, "wood": 150},
+      "buildSeconds": 110, "hp": 2800, "armor": 5, "vision": 10, "garrison": 15,
+      "attack": 10, "range": 8, "attackCooldownTicks": 20, "projectileSpeed": 9000,
+      "garrisonArrows": 1, "classes": ["tower"],
+      "trains": ["royal_guard", "catapult"]
     }
   ]
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:age_of_empire_camer/app/providers.dart';
+import 'package:age_of_empire_camer/ui/campaign/campaign_screen.dart';
 import 'package:age_of_empire_camer/ui/menu/new_game.dart';
 import 'package:age_of_empire_camer/ui/responsive/size_class.dart';
 import 'package:flutter/material.dart';
@@ -81,6 +82,25 @@ class _MenuColumnState extends ConsumerState<_MenuColumn> {
     if (mounted) setState(() {});
   }
 
+  String _dailyLabel() {
+    final best = ref.watch(progressProvider).daily[dailyKey(DateTime.now())];
+    if (best == null) return 'Défi du jour';
+    return 'Défi du jour (record ${best ~/ 60} min '
+        '${(best % 60).toString().padLeft(2, '0')} s)';
+  }
+
+  Future<void> _dailyChallenge() async {
+    final defs = await ref.read(defsProvider.future);
+    if (!mounted) return;
+    final now = DateTime.now();
+    await startGame(
+      context,
+      ref,
+      dailyOptions(now, defs),
+      daily: dailyKey(now),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = sizeClass.minTouchTarget + 8;
@@ -101,6 +121,20 @@ class _MenuColumnState extends ConsumerState<_MenuColumn> {
           onPressed: () =>
               unawaited(_afterGame(showNewGameDialog(context, ref))),
           child: const Text('Nouvelle partie'),
+        ),
+        const SizedBox(height: 12),
+        FilledButton(
+          style: style(),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const CampaignScreen()),
+          ),
+          child: const Text('Campagne'),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.tonal(
+          style: style(),
+          onPressed: () => unawaited(_afterGame(_dailyChallenge())),
+          child: Text(_dailyLabel()),
         ),
         const SizedBox(height: 12),
         FilledButton.tonal(

@@ -7,6 +7,7 @@ import 'package:age_of_empire_camer/sim/data/res.dart';
 import 'package:age_of_empire_camer/sim/systems/construction.dart';
 import 'package:age_of_empire_camer/sim/world/entities.dart';
 import 'package:age_of_empire_camer/sim/world/world.dart';
+import 'package:age_of_empire_camer/ui/hud/combat_hud.dart';
 import 'package:age_of_empire_camer/ui/hud/minimap.dart';
 import 'package:age_of_empire_camer/ui/responsive/size_class.dart';
 import 'package:age_of_empire_camer/ui/strings.dart';
@@ -98,11 +99,28 @@ class Hud extends StatelessWidget {
                 bottom: 0,
                 child: BottomBar(controller: controller, metrics: m),
               ),
+              Positioned(
+                right: 8,
+                bottom: m.bottomHeight + 4,
+                child: CombatPanel(controller: controller, metrics: m),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: m.topBar + 44,
+                child: Center(child: TargetingBanner(controller: controller)),
+              ),
               if (controller.placing != null)
                 Positioned(
-                  right: 12,
+                  left: 0,
+                  right: 0,
                   bottom: m.bottomHeight + 12,
-                  child: _PlacementButtons(controller: controller, metrics: m),
+                  child: Center(
+                    child: _PlacementButtons(
+                      controller: controller,
+                      metrics: m,
+                    ),
+                  ),
                 ),
             ],
           ),

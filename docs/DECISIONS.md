@@ -21,6 +21,11 @@
 | 17 | 2026-10-17 | Tri de profondeur par tri topologique (règle isométrique exacte pour grands bâtiments) plutôt que par `x + y` | Un objet contre le flanc d'un grand bâtiment est bien devant/derrière |
 | 18 | 2026-10-17 | Les textes du HUD sont regroupés dans `lib/ui/strings.dart` | Migration `.arb` triviale en Phase 9 |
 | 19 | 2026-10-17 | Tout élément d'équilibrage (coûts, vitesses, portées de vision, constantes de génération, frais de marché…) vit dans `assets/data/*.json` ; les portées géométriques d'interaction (≈ 1,1 case) restent des constantes de moteur | Règle transversale n° 3 |
+| 20 | 2026-10-19 | Le moteur de mission est une **partie de la simulation** (`World.mission`, évalué tous les 5 ticks, sauvegardé et haché) plutôt qu'un script d'interface | Missions rejouables à l'identique, reprise en cours de mission, tests headless |
+| 21 | 2026-10-19 | Les missions sont des données JSON (`assets/campaign/campaign.json`, généré par `tool/gen_campaign.py`) : conditions et actions composables (`all`/`any`/`not`), entités marquées par étiquettes, positions relatives aux points de départ | Cartes générées : pas de coordonnées absolues fiables |
+| 22 | 2026-10-19 | Déblocages de campagne par `Player.locked` (identifiants) vérifié dans pose, production et recherche ; absent du hash quand vide | Hash de référence des parties d'escarmouche inchangé |
+| 23 | 2026-10-19 | L'IA ne pose un bâtiment que s'il laisse la zone atteignable depuis le centre-ville (hors emprise + 6 cases) | Elle s'enfermait avec ses champs et ses huttes |
+| 24 | 2026-10-19 | Rendu seul : le geste, l'orientation et la position de travail d'une unité sont déduits de l'état de simulation (jamais l'inverse) | Aucun effet sur le déterminisme |
 
 ## Limites connues (à traiter plus tard)
 - La seconde instance se ferme sans ramener la première au premier plan (code natif requis) — Phase 10.

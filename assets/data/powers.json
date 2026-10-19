@@ -1,0 +1,72 @@
+{
+  "powers": [
+    {"id": "rally_cry", "age": 0, "cooldownSeconds": 60, "target": "self", "radius": 5000,
+     "affects": "allies", "effects": [{"kind": "gather_pct", "value": 25, "seconds": 10}]},
+    {"id": "spear_wall", "age": 0, "cooldownSeconds": 40, "target": "self", "radius": 0,
+     "affects": "allies",
+     "effects": [
+       {"kind": "armor_add", "value": 3, "seconds": 4},
+       {"kind": "root", "value": 0, "seconds": 4},
+       {"kind": "attack_pct", "value": 25, "seconds": 4}
+     ]},
+    {"id": "arrow_rain", "age": 1, "cooldownSeconds": 35, "target": "ground", "rangeTiles": 7, "radius": 1500,
+     "affects": "enemies", "effects": [{"kind": "dot", "value": 7, "seconds": 3}]},
+    {"id": "crushing_blow", "age": 1, "cooldownSeconds": 30, "target": "unit", "rangeTiles": 2, "radius": 0,
+     "affects": "enemies",
+     "effects": [{"kind": "stun", "value": 0, "seconds": 2}, {"kind": "damage", "value": 10, "seconds": 0}]},
+    {"id": "charge", "age": 2, "cooldownSeconds": 25, "target": "self", "radius": 0,
+     "affects": "allies",
+     "effects": [{"kind": "first_hit_pct", "value": 100, "seconds": 8}, {"kind": "speed", "value": 50, "seconds": 3}]},
+    {"id": "lion_fury", "age": 3, "cooldownSeconds": 60, "target": "self", "radius": 0,
+     "affects": "allies",
+     "effects": [{"kind": "attack_pct", "value": 50, "seconds": 8}, {"kind": "stun_immune", "value": 0, "seconds": 6}]},
+
+    {"id": "ancestor_drum", "age": 0, "cooldownSeconds": 45, "target": "self", "radius": 6000,
+     "affects": "allies",
+     "effects": [{"kind": "attack_pct", "value": 20, "seconds": 15}, {"kind": "speed", "value": 20, "seconds": 15}]},
+    {"id": "unity", "age": 3, "cooldownSeconds": 90, "target": "self", "radius": 7000,
+     "affects": "allies", "effects": [{"kind": "purge", "value": 0, "seconds": 0}, {"kind": "heal", "value": 80, "seconds": 0}]},
+    {"id": "ancestor_aura", "age": 0, "cooldownSeconds": 0, "target": "self", "radius": 5000,
+     "affects": "allies", "aura": true, "effects": [{"kind": "attack_pct", "value": 5, "seconds": 3}]},
+
+    {"id": "tide", "age": 0, "cooldownSeconds": 40, "target": "ground", "rangeTiles": 8, "radius": 4000,
+     "affects": "enemies", "effects": [{"kind": "slow", "value": 40, "seconds": 8}]},
+    {"id": "flood", "age": 3, "cooldownSeconds": 90, "target": "ground", "rangeTiles": 8, "radius": 5000,
+     "affects": "enemies", "effects": [{"kind": "damage", "value": 30, "seconds": 0}, {"kind": "slow", "value": 50, "seconds": 8}]},
+    {"id": "tide_aura", "age": 0, "cooldownSeconds": 0, "target": "self", "radius": 4000,
+     "affects": "allies", "aura": true, "effects": [{"kind": "armor_add", "value": 1, "seconds": 3}]},
+
+    {"id": "war_forge", "age": 0, "cooldownSeconds": 50, "target": "self", "radius": 6000,
+     "affects": "allies", "effects": [{"kind": "attack_pct", "value": 25, "seconds": 12}]},
+    {"id": "iron_thunder", "age": 3, "cooldownSeconds": 90, "target": "ground", "rangeTiles": 9, "radius": 3000,
+     "affects": "enemies", "effects": [{"kind": "damage", "value": 60, "seconds": 0}, {"kind": "stun", "value": 0, "seconds": 1}]},
+    {"id": "forge_aura", "age": 0, "cooldownSeconds": 0, "target": "self", "radius": 4000,
+     "affects": "allies", "aura": true, "effects": [{"kind": "armor_add", "value": 1, "seconds": 3}]},
+
+    {"id": "wind_gallop", "age": 0, "cooldownSeconds": 40, "target": "self", "radius": 5000,
+     "affects": "allies", "effects": [{"kind": "speed", "value": 60, "seconds": 5}]},
+    {"id": "stampede", "age": 3, "cooldownSeconds": 90, "target": "self", "radius": 4000,
+     "affects": "enemies", "includeSelf": false,
+     "effects": [{"kind": "stun", "value": 0, "seconds": 2}, {"kind": "damage", "value": 25, "seconds": 0}]},
+    {"id": "wind_aura", "age": 0, "cooldownSeconds": 0, "target": "self", "radius": 4000,
+     "affects": "allies", "aura": true, "effects": [{"kind": "speed", "value": 8, "seconds": 3}]},
+
+    {"id": "raven_swarm", "age": 0, "cooldownSeconds": 45, "target": "ground", "rangeTiles": 8, "radius": 3000,
+     "affects": "enemies", "effects": [{"kind": "attack_pct", "value": -60, "seconds": 10}]},
+    {"id": "raven_storm", "age": 3, "cooldownSeconds": 90, "target": "ground", "rangeTiles": 8, "radius": 4000,
+     "affects": "enemies", "effects": [{"kind": "damage", "value": 40, "seconds": 0}, {"kind": "slow", "value": 30, "seconds": 6}]},
+    {"id": "raven_aura", "age": 0, "cooldownSeconds": 0, "target": "self", "radius": 4000,
+     "affects": "allies", "aura": true, "effects": [{"kind": "attack_pct", "value": 5, "seconds": 3}]},
+
+    {"id": "lightning", "age": 0, "cooldownSeconds": 20, "target": "ground", "radius": 2000,
+     "affects": "enemies", "drumCost": 300, "effects": [{"kind": "damage", "value": 50, "seconds": 0}]},
+    {"id": "heal_spell", "age": 0, "cooldownSeconds": 20, "target": "ground", "radius": 3000,
+     "affects": "allies", "drumCost": 250, "effects": [{"kind": "heal", "value": 60, "seconds": 0}]},
+    {"id": "rage", "age": 0, "cooldownSeconds": 20, "target": "ground", "radius": 3000,
+     "affects": "allies", "drumCost": 300,
+     "effects": [{"kind": "attack_pct", "value": 40, "seconds": 10}, {"kind": "speed", "value": 30, "seconds": 10}]},
+    {"id": "freeze", "age": 0, "cooldownSeconds": 25, "target": "ground", "radius": 3000,
+     "affects": "enemies", "drumCost": 350,
+     "effects": [{"kind": "stun", "value": 0, "seconds": 4}, {"kind": "slow", "value": 50, "seconds": 6}]}
+  ]
+}

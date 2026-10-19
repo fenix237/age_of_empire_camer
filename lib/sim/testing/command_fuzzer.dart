@@ -60,6 +60,30 @@ class CommandFuzzer {
     final home = owner >= 0 && owner < w.players.length
         ? w.players[owner]
         : null;
+    if (rng.chance(10)) {
+      final j = rng.nextInt(100);
+      if (j < 55) {
+        final mine = _units(w, owner);
+        return PowerCmd(
+          owner,
+          mine.isEmpty ? -1 : _pick(mine),
+          rng.range(-1, 3),
+          x: coord(),
+          y: coord(),
+          target: _anyId(w),
+        );
+      }
+      if (j < 80) {
+        return SpellCmd(
+          owner,
+          rng.range(-1, defs.powers.length + 1),
+          coord(),
+          coord(),
+        );
+      }
+      if (j < 99) return AgeUpCmd(owner, bid());
+      return ResignCmd(owner);
+    }
     final k = rng.nextInt(100);
     if (k < 22) {
       return MoveCmd(
